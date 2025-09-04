@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  patent-matcher:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ../data:/app/data
+      - ../config:/app/config
+      - ../reports:/app/reports
+    environment:
+      - DEVICE=${DEVICE:-cpu}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    command: python scripts/run_pipeline.py --config config/config.yaml
+    
+  jupyter:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8888:8888"
+    volumes:
+      - ../:/app
+    command: jupyter notebook --ip=0.0.0.0 --no-browser --allow-root
+    
+  report-generator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ../data:/app/data
+      - ../reports:/app/reports
+    command: python scripts/generate_report.py
+    depends_on:
+      - patent-matcher
