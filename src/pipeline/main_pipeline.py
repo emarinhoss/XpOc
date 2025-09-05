@@ -50,52 +50,22 @@ class PatentOccupationPipeline:
         processed_patents_path = Path(self.config['data']['patents']['processed_path'])
         processed_onet_path = Path(self.config['data']['onet']['processed_path'])
         
+        # Ensure directories exist
+        processed_patents_path.parent.mkdir(parents=True, exist_ok=True)
+        processed_onet_path.parent.mkdir(parents=True, exist_ok=True)
+        
         # Check if processed patents exist
         if not processed_patents_path.exists():
-            logger.info("Processed patents not found. Creating from raw data...")
-            
-            # Try to load raw patents
-            raw_patents_path = Path(self.config['data']['patents']['raw_path'])
-            
-            # Look for any CSV or TSV file in raw patents directory
-            patent_files = list(raw_patents_path.glob('*.csv')) + \
-                          list(raw_patents_path.glob('*.tsv'))
-            
-            if not patent_files:
-                # Create sample data for demonstration
-                logger.warning("No raw patent files found. Creating sample data...")
-                self._create_sample_patents(processed_patents_path)
-            else:
-                # Load and process the first found file
-                logger.info(f"Loading raw patents from {patent_files[0]}")
-                if patent_files[0].suffix == '.tsv':
-                    patents_df = pd.read_csv(patent_files[0], sep='\t')
-                else:
-                    patents_df = pd.read_csv(patent_files[0])
-                
-                # Preprocess and save
-                patents_df = self.preprocessor.preprocess_patents(patents_df)
-                processed_patents_path.parent.mkdir(parents=True, exist_ok=True)
-                patents_df.to_csv(processed_patents_path, index=False)
-                logger.info(f"Saved processed patents to {processed_patents_path}")
+            logger.info("Processed patents not found. Creating sample data...")
+            self._create_sample_patents(processed_patents_path)
         
         # Check if processed O*NET exists
         if not processed_onet_path.exists():
-            logger.info("Processed O*NET not found. Creating from raw data...")
-            
-            raw_onet_path = Path(self.config['data']['onet']['task_ratings_path'])
-            
-            if not raw_onet_path.exists():
-                # Create sample O*NET data
-                logger.warning("No raw O*NET file found. Creating sample data...")
-                self._create_sample_onet(processed_onet_path)
-            else:
-                # Load and process
-                onet_df = pd.read_excel(raw_onet_path)
-                onet_df = self.preprocessor.preprocess_onet(onet_df)
-                processed_onet_path.parent.mkdir(parents=True, exist_ok=True)
-                onet_df.to_csv(processed_onet_path, index=False)
-                logger.info(f"Saved processed O*NET to {processed_onet_path}")
+            logger.info("Processed O*NET not found. Creating sample data...")
+            # Create as CSV for better compatibility
+            if processed_onet_path.suffix == '.xlsx':
+                processed_onet_path = processed_onet_path.with_suffix('.csv')
+            self._create_sample_onet(processed_onet_path)
     
     def _create_sample_patents(self, output_path: Path):
         """Create sample patent data for demonstration."""
