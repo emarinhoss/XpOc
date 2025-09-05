@@ -5,9 +5,11 @@ from pathlib import Path
 from typing import Dict, Any
 import numpy as np
 import time
+import pandas as pd
 
 from src.data.patent_loader import PatentLoader
 from src.data.onet_loader import ONetLoader
+from src.data.data_preprocessor import DataPreprocessor
 from src.embedding.bert_embedder import BertEmbedder
 from src.matching.scann_matcher import ScannMatcher
 
@@ -24,6 +26,7 @@ class PatentOccupationPipeline:
         self.onet_loader = ONetLoader(self.config)
         self.embedder = BertEmbedder(self.config)
         self.matcher = ScannMatcher(self.config)
+        self.preprocessor = DataPreprocessor()
         
     def _load_config(self, config_path: str) -> Dict[str, Any]:
         """Load configuration from YAML file."""
@@ -31,25 +34,126 @@ class PatentOccupationPipeline:
             config = yaml.safe_load(f)
         return config
     
+    def _ensure_processed_data(self):
+        """Ensure processed data exists, create if not."""
+        processed_patents_path = Path(self.config['data']['patents']['processed_path'])
+        processed_onet_path = Path(self.config['data']['onet']['processed_path'])
+        
+        # Check if processed patents exist
+        if not processed_patents_path.exists():
+            logger.info("Processed patents not found. Creating from raw data...")
+            
+            # Try to load raw patents
+            raw_patents_path = Path(self.config['data']['patents']['raw_path'])
+            
+            # Look for any CSV or TSV file in raw patents directory
+            patent_files = list(raw_patents_path.glob('*.csv')) + \
+                          list(raw_patents_path.glob('*.tsv'))
+            
+            if not patent_files:
+                # Create sample data for demonstration
+                logger.warning("No raw patent files found. Creating sample data...")
+                self._create_sample_patents(processed_patents_path)
+            else:
+                # Load and process the first found file
+                logger.info(f"Loading raw patents from {patent_files[0]}")
+                if patent_files[0].suffix == '.tsv':
+                    patents_df = pd.read_csv(patent_files[0], sep='\t')
+                else:
+                    patents_df = pd.read_csv(patent_files[0])
+                
+                # Preprocess and save
+                patents_df = self.preprocessor.preprocess_patents(patents_df)
+                processed_patents_path.parent.mkdir(parents=True, exist_ok=True)
+                patents_df.to_csv(processed_patents_path, index=False)
+                logger.info(f"Saved processed patents to {processed_patents_path}")
+        
+        # Check if processed O*NET exists
+        if not processed_onet_path.exists():
+            logger.info("Processed O*NET not found. Creating from raw data...")
+            
+            raw_onet_path = Path(self.config['data']['onet']['task_ratings_path'])
+            
+            if not raw_onet_path.exists():
+                # Create sample O*NET data
+                logger.warning("No raw O*NET file found. Creating sample data...")
+                self._create_sample_onet(processed_onet_path)
+            else:
+                # Load and process
+                onet_df = pd.read_excel(raw_onet_path)
+                onet_df = self.preprocessor.preprocess_onet(onet_df)
+                processed_onet_path.parent.mkdir(parents=True, exist_ok=True)
+                onet_df.to_csv(processed_onet_path, index=False)
+                logger.info(f"Saved processed O*NET to {processed_onet_path}")
+    
+    def _create_sample_patents(self, output_path: Path):
+        """Create sample patent data for demonstration."""
+        sample_data = {
+            'application_id': range(1, 101),
+            'application_title': [f'AI Patent Title {i}' for i in range(1, 101)],
+            'application_abstract': [f'Abstract for patent {i}' for i in range(1, 101)],
+            'filing_date': ['2021-01-01'] * 30 + ['2022-01-01'] * 35 + ['2023-01-01'] * 35,
+            'published_date': ['2021-06-01'] * 30 + ['2022-06-01'] * 35 + ['2023-06-01'] * 35,
+            'year': [2021.0] * 30 + [2022.0] * 35 + [2023.0] * 35,
+            'topic_label': ['Machine Learning'] * 50 + ['Neural Networks'] * 50
+        }
+        
+        df = pd.DataFrame(sample_data)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(output_path, index=False)
+        logger.info(f"Created sample patents at {output_path}")
+    
+    def _create_sample_onet(self, output_path: Path):
+        """Create sample O*NET data for demonstration."""
+        sample_data = {
+            'Task ID': range(1, 51),
+            'Task': [f'Perform task related to {area} using {tool}' 
+                    for area in ['analysis', 'design', 'management', 'development', 'testing']
+                    for tool in ['AI tools', 'ML algorithms', 'data systems', 'automation', 
+                                 'neural networks', 'NLP', 'computer vision', 'robotics', 
+                                 'expert systems', 'decision trees']],
+            'Title': ['Data Scientist'] * 10 + ['Software Engineer'] * 10 + 
+                    ['AI Specialist'] * 10 + ['ML Engineer'] * 10 + ['Research Scientist'] * 10,
+            'O*NET-SOC Code': ['15-2051.00'] * 10 + ['15-1252.00'] * 10 + 
+                             ['15-1299.00'] * 10 + ['15-1299.01'] * 10 + ['19-1021.00'] * 10
+        }
+        
+        df = pd.DataFrame(sample_data)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(output_path, index=False)
+        logger.info(f"Created sample O*NET data at {output_path}")
+    
     def run(self):
         """Execute the main pipeline."""
         logger.info("Starting patent-occupation matching pipeline")
         start_time = time.time()
         
-        # Load data
-        logger.info("Loading data...")
+        # Ensure processed data exists
+        self._ensure_processed_data()
+        
+        # Load processed data
+        logger.info("Loading processed data...")
         patents_df = self.patent_loader.load_patents(
             self.config['data']['patents']['processed_path']
         )
         
-        categories_df = self.patent_loader.load_ai_categories(
-            self.config['data']['patents']['ai_categories_path']
-        )
+        # Load or create AI categories
+        categories_path = Path(self.config['data']['patents']['ai_categories_path'])
+        if categories_path.exists():
+            categories_df = self.patent_loader.load_ai_categories(str(categories_path))
+        else:
+            # Create default categories
+            logger.warning("AI categories file not found. Using all patents as AI patents...")
+            categories_df = pd.DataFrame({
+                'AI topic': [1] * len(patents_df['topic_label'].unique()),
+                'Topics': patents_df['topic_label'].unique()
+            })
         
         ai_patents = self.patent_loader.filter_ai_patents(categories_df)
         
+        # Load O*NET data
         onet_df = self.onet_loader.load_task_ratings(
-            self.config['data']['onet']['task_ratings_path']
+            self.config['data']['onet']['processed_path']
         )
         
         # Generate O*NET embeddings
@@ -65,6 +169,11 @@ class PatentOccupationPipeline:
             
             # Get patents for year
             year_patents = self.patent_loader.get_patents_by_year(year)
+            
+            if len(year_patents) == 0:
+                logger.warning(f"No patents found for year {year}, skipping...")
+                continue
+            
             patent_titles = year_patents['application_title'].tolist()
             
             # Generate patent embeddings
