@@ -12,7 +12,7 @@ data:
 # Model configuration
 embedding:
   model_name: "anferico/bert-for-patents"
-  device: "cuda"  # or "cpu"
+  device: "cpu"  # "cuda" or "cpu"
   batch_size: 32
   max_length: 512
   normalize: true
@@ -28,9 +28,9 @@ matching:
   
 # Processing
 processing:
-  years_to_process: [2021, 2022, 2023]
-  ai_topic_filter: 1  # Filter for AI patents
-  similarity_threshold: 0.7
+  years_to_process: [2021, 2022, 2023, 2024, 2025]
+  ai_topic_filter: 0  # Filter for AI patents
+  similarity_threshold: 0.75
   top_k_matches: 200
 
 # Output
