@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 
 import pandas as pd
-from openai import OpenAI
+from openai import OpenAI, AzureOpenAI
 from tqdm import tqdm
 
 # Setup logging
@@ -46,7 +46,7 @@ def get_categorization_prompt():
         abstract="{abstract}"
     )
 
-def classify_patent(client: OpenAI, title: str, abstract: str) -> str:
+def classify_patent(client: OpenAI, title: str, abstract: str, model_name: str) -> str:
     """
     Classifies a single patent using the OpenAI API.
 
@@ -54,6 +54,7 @@ def classify_patent(client: OpenAI, title: str, abstract: str) -> str:
         client: The OpenAI API client.
         title: The title of the patent.
         abstract: The abstract of the patent.
+        model_name: The name of the model or deployment to use.
 
     Returns:
         The classified category name, or "classification_failed" on error.
@@ -61,7 +62,7 @@ def classify_patent(client: OpenAI, title: str, abstract: str) -> str:
     prompt = get_categorization_prompt().format(title=title, abstract=abstract)
     try:
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model=model_name,
             messages=[
                 {"role": "system", "content": "You are an expert in AI and patent classification."},
                 {"role": "user", "content": prompt}
@@ -87,7 +88,19 @@ def main(args):
         logging.error(f"API key not found. Please set the '{args.api_key_env}' environment variable.")
         return
 
-    client = OpenAI(api_key=api_key)
+    if args.use_azure:
+        logging.info("Using Azure OpenAI client.")
+        client = AzureOpenAI(
+            api_key=api_key,
+            api_version=args.azure_api_version,
+            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+        )
+        if not client.azure_endpoint:
+            logging.error("Azure endpoint not found. Please set the 'AZURE_OPENAI_ENDPOINT' environment variable.")
+            return
+    else:
+        logging.info("Using standard OpenAI client.")
+        client = OpenAI(api_key=api_key)
 
     input_path = Path(args.input_file)
     output_path = Path(args.output_file)
@@ -131,7 +144,8 @@ def main(args):
             df.loc[index, args.category_column] = "missing_data"
             continue
 
-        category = classify_patent(client, title, abstract)
+        model_name = args.azure_deployment if args.use_azure else "gpt-3.5-turbo"
+        category = classify_patent(client, title, abstract, model_name)
         df.loc[index, args.category_column] = category
 
         # Save progress periodically
@@ -198,6 +212,28 @@ if __name__ == "__main__":
         default=1.0,
         help="Delay in seconds between API calls to avoid rate limiting."
     )
+    # --- Azure Specific Arguments ---
+    parser.add_argument(
+        "--use-azure",
+        action="store_true",
+        help="Use Azure OpenAI service instead of the default OpenAI."
+    )
+    parser.add_argument(
+        "--azure-deployment",
+        type=str,
+        default=None,
+        help="Name of the Azure OpenAI deployment. Required if --use-azure is set."
+    )
+    parser.add_argument(
+        "--azure-api-version",
+        type=str,
+        default="2023-12-01-preview",
+        help="Azure OpenAI API version."
+    )
 
     args = parser.parse_args()
+
+    if args.use_azure and not args.azure_deployment:
+        parser.error("--azure-deployment is required when --use-azure is set.")
+
     main(args)
