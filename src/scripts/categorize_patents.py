@@ -116,6 +116,18 @@ def main(args):
         logging.error(f"Input file not found at {input_path}")
         return
 
+    # Filter by year if start_year is provided
+    if args.start_year:
+        if 'year' not in df.columns:
+            logging.error("Cannot filter by year: 'year' column not found in the input file.")
+            return
+
+        original_count = len(df)
+        df['year'] = pd.to_numeric(df['year'], errors='coerce')
+        df = df.dropna(subset=['year'])
+        df = df[df['year'] >= args.start_year]
+        logging.info(f"Filtered patents from {original_count} to {len(df)} based on start year {args.start_year}.")
+
     # Create new category column if it doesn't exist
     if args.category_column not in df.columns:
         df[args.category_column] = None
@@ -231,6 +243,12 @@ if __name__ == "__main__":
         type=str,
         default="2023-12-01-preview",
         help="Azure OpenAI API version."
+    )
+    parser.add_argument(
+        "--start-year",
+        type=int,
+        default=None,
+        help="Filter patents to include only those from this year and later."
     )
 
     args = parser.parse_args()
