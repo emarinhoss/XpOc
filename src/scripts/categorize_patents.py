@@ -110,7 +110,7 @@ def main(args):
 
     # Load input data
     try:
-        df = pd.read_csv(input_path)
+        df = pd.read_csv(input_path, sep='\t')
         logging.info(f"Loaded {len(df)} patents from {input_path}")
     except FileNotFoundError:
         logging.error(f"Input file not found at {input_path}")
@@ -119,8 +119,10 @@ def main(args):
     # Filter by year if start_year is provided
     if args.start_year:
         if 'year' not in df.columns:
-            logging.error("Cannot filter by year: 'year' column not found in the input file.")
-            return
+            df['published_date'] = pd.to_datetime(df['published_date'])
+            df['year'] = df.published_date.dt.year
+            # logging.error("Cannot filter by year: 'year' column not found in the input file.")
+            # return
 
         original_count = len(df)
         df['year'] = pd.to_numeric(df['year'], errors='coerce')
