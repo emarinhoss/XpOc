@@ -90,14 +90,16 @@ def main(args):
 
     if args.use_azure:
         logging.info("Using Azure OpenAI client.")
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+        if not azure_endpoint:
+            logging.error("Azure endpoint not found. Please set the 'AZURE_OPENAI_ENDPOINT' environment variable.")
+            return
+
         client = AzureOpenAI(
             api_key=api_key,
             api_version=args.azure_api_version,
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+            azure_endpoint=azure_endpoint
         )
-        if not client.azure_endpoint:
-            logging.error("Azure endpoint not found. Please set the 'AZURE_OPENAI_ENDPOINT' environment variable.")
-            return
     else:
         logging.info("Using standard OpenAI client.")
         client = OpenAI(api_key=api_key)
