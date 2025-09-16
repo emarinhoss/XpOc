@@ -15,3 +15,4 @@ tqdm
 pytest
 black
 flake8
+openai>=1.0.0

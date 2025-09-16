@@ -37,18 +37,40 @@ class PatentLoader:
         categories_df = pd.read_excel(filepath)
         return categories_df
     
-    def filter_ai_patents(self, categories_df: pd.DataFrame) -> pd.DataFrame:
+    def filter_ai_patents(self, categories_df: Optional[pd.DataFrame] = None) -> pd.DataFrame:
         """Filter patents to only include AI-related ones."""
-        ai_topic = self.config['processing']['ai_topic_filter']
-        ai_categories = categories_df[
-            categories_df["AI topic"] == ai_topic
-        ]["Topics"].tolist()
+        category_column = self.config.get('processing', {}).get('category_column')
+
+        if category_column and category_column in self.patents_df.columns:
+            # New logic: filter by the specified category column
+            # We filter out rows where the category is null, 'unknown', or 'classification_failed'
+            valid_categories = self.patents_df[category_column].dropna()
+            invalid_values = ['unknown', 'classification_failed', 'missing_data']
+            valid_categories = valid_categories[~valid_categories.isin(invalid_values)]
+
+            self.ai_patents_df = self.patents_df[
+                self.patents_df[category_column].isin(valid_categories.unique())
+            ]
+            logger.info(f"Filtered to {len(self.ai_patents_df)} AI patents using column '{category_column}'.")
+
+        elif categories_df is not None:
+            # Original logic: filter using the categories file
+            logger.info("Using categories file to filter AI patents.")
+            ai_topic = self.config['processing']['ai_topic_filter']
+            ai_categories = categories_df[
+                categories_df["AI topic"] == ai_topic
+            ]["Topics"].tolist()
+
+            self.ai_patents_df = self.patents_df[
+                self.patents_df['topic_label'].isin(ai_categories)
+            ]
+            logger.info(f"Filtered to {len(self.ai_patents_df)} AI patents based on topic label.")
         
-        self.ai_patents_df = self.patents_df[
-            self.patents_df['topic_label'].isin(ai_categories)
-        ]
-        
-        logger.info(f"Filtered to {len(self.ai_patents_df)} AI patents")
+        else:
+            # Fallback: no filtering, use all patents
+            logger.warning("No category column specified and no categories file provided. Using all patents.")
+            self.ai_patents_df = self.patents_df.copy()
+
         return self.ai_patents_df
     
     def get_patents_by_year(self, year: int) -> pd.DataFrame:

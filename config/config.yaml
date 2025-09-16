@@ -29,9 +29,13 @@ matching:
 # Processing
 processing:
   years_to_process: [2021, 2022, 2023, 2024, 2025]
-  ai_topic_filter: 0  # Filter for AI patents
+  ai_topic_filter: 0  # Used if category_column is null
   similarity_threshold: 0.75
   top_k_matches: 200
+  # Name of the column in the patent data to use for filtering AI patents.
+  # If this is set, the pipeline will use this column.
+  # If null or commented out, it will fall back to using ai_categories_path.
+  category_column: "ai_category"
 
 # Output
 output:

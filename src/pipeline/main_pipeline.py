@@ -118,17 +118,17 @@ class PatentOccupationPipeline:
             self.config['data']['patents']['processed_path']
         )
         
-        # Load or create AI categories
-        categories_path = Path(self.config['data']['patents']['ai_categories_path'])
-        if categories_path.exists():
-            categories_df = self.patent_loader.load_ai_categories(str(categories_path))
-        else:
-            # Create default categories
-            logger.warning("AI categories file not found. Using all patents as AI patents...")
-            categories_df = pd.DataFrame({
-                'AI topic': [1] * len(patents_df['topic_label'].unique()),
-                'Topics': patents_df['topic_label'].unique()
-            })
+        # Filter for AI patents
+        category_column = self.config.get('processing', {}).get('category_column')
+        categories_df = None
+
+        if not category_column:
+            logger.info("No category column specified. Attempting to filter using categories file.")
+            categories_path = Path(self.config['data']['patents']['ai_categories_path'])
+            if categories_path.exists():
+                categories_df = self.patent_loader.load_ai_categories(str(categories_path))
+            else:
+                logger.warning("AI categories file not found and no category column set.")
         
         ai_patents = self.patent_loader.filter_ai_patents(categories_df)
         
