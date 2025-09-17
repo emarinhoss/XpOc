@@ -98,6 +98,7 @@ def main(args):
         client = AzureOpenAI(
             api_key=api_key,
             api_version=args.azure_api_version,
+            default_headers={"Ocp-Apim-Subscription-Key": api_key},
             azure_endpoint=azure_endpoint
         )
     else:
@@ -195,7 +196,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--api-key-env",
         type=str,
-        default="OPENAI_API_KEY",
+        default="RAND_OPENAI_API_KEY",
         help="Name of the environment variable containing the OpenAI API key."
     )
     parser.add_argument(
