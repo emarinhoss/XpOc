@@ -6,6 +6,7 @@ A system for matching AI patents with occupational tasks using BERT embeddings a
 
 - [Features](#features)
 - [System Architecture](#system-architecture)
+- [Patent Categorization](#patent-categorization)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
@@ -34,6 +35,64 @@ The pipeline consists of the following main components:
 5.  **Main Pipeline**: The `PatentOccupationPipeline` class orchestrates the entire workflow, from loading data to saving the results.
 
 The pipeline processes patents year by year, generates embeddings, and finds the top-k most similar patents for each O*NET task. The results are then saved to a CSV file.
+
+## Patent Categorization
+
+Before matching patents with occupations, patents must first be classified into AI categories. This repository provides two approaches:
+
+### Approach 1: Zero-Shot BERT Classification ⭐ **RECOMMENDED**
+
+Uses BERT embeddings and cosine similarity to classify patents into 8 AI categories **without API calls**.
+
+**Benefits:**
+- **Free**: No API costs ($0 vs $9,000-$18,000 for 900k patents)
+- **Fast**: ~4 hours on GPU or ~24 hours on CPU for 900k patents
+- **Offline**: Works without internet connection
+- **Reproducible**: Same results every time
+
+**Usage:**
+```bash
+python src/scripts/categorize_patents_zeroshot.py \
+    --input-file data/processed/patents.csv \
+    --output-file data/processed/patents_categorized.csv \
+    --device cpu \
+    --batch-size 32
+```
+
+### Approach 2: OpenAI API Classification
+
+Uses GPT-3.5-turbo or Azure OpenAI to classify patents via API calls.
+
+**Benefits:**
+- Higher accuracy on ambiguous cases (~95-98%)
+- Easy to use
+
+**Drawbacks:**
+- Expensive (~$9,000-$18,000 for 900k patents)
+- Slow (rate-limited, ~10 days for 900k patents)
+- Requires API key and internet
+
+**Usage:**
+```bash
+python src/scripts/categorize_patents.py \
+    --input-file data/processed/patents.csv \
+    --output-file data/processed/patents_categorized.csv \
+    --api-key-env RAND_OPENAI_API_KEY
+```
+
+### AI Categories
+
+Both approaches classify patents into these 8 categories:
+- **computer vision**: Image and video understanding
+- **evolutionary computation**: Evolution-inspired optimization
+- **AI hardware**: Specialized AI processors
+- **knowledge processing**: Knowledge bases and reasoning
+- **machine learning**: Learning algorithms
+- **NLP**: Natural language processing
+- **planning and control**: Planning and robotics
+- **speech recognition**: Speech understanding
+
+See [docs/patent_categorization_comparison.md](docs/patent_categorization_comparison.md) for a detailed comparison.
 
 ## Installation
 
