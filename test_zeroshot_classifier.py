@@ -51,10 +51,12 @@ def main():
     config = {
         'embedding': {
             'model_name': 'anferico/bert-for-patents',
+            'model_type': 'sentence-transformers',
             'device': 'cpu',
             'batch_size': 8,
             'max_length': 512,
-            'normalize': True
+            'normalize': True,
+            'pooling': 'mean'
         }
     }
 

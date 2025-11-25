@@ -40,24 +40,41 @@ The pipeline processes patents year by year, generates embeddings, and finds the
 
 Before matching patents with occupations, patents must first be classified into AI categories. This repository provides two approaches:
 
-### Approach 1: Zero-Shot BERT Classification ⭐ **RECOMMENDED**
+### Approach 1: Zero-Shot Classification ⭐ **RECOMMENDED**
 
-Uses BERT embeddings and cosine similarity to classify patents into 8 AI categories **without API calls**.
+Uses embedding models and cosine similarity to classify patents into 8 AI categories **without API calls**.
+
+**Supports any HuggingFace model:**
+- `anferico/bert-for-patents` (default, specialized for patents)
+- `google/embeddinggemma-300m` (efficient, general-purpose)
+- `sentence-transformers/all-MiniLM-L6-v2` (very fast)
+- Any other sentence-transformers or AutoModel
 
 **Benefits:**
 - **Free**: No API costs ($0 vs $9,000-$18,000 for 900k patents)
 - **Fast**: ~4 hours on GPU or ~24 hours on CPU for 900k patents
+- **Flexible**: Choose from hundreds of HuggingFace models
 - **Offline**: Works without internet connection
 - **Reproducible**: Same results every time
 
-**Usage:**
+**Usage (Default BERT-for-patents):**
+```bash
+python src/scripts/categorize_patents_zeroshot.py \
+    --input-file data/processed/patents.csv \
+    --output-file data/processed/patents_categorized.csv
+```
+
+**Usage (Google EmbeddingGemma):**
 ```bash
 python src/scripts/categorize_patents_zeroshot.py \
     --input-file data/processed/patents.csv \
     --output-file data/processed/patents_categorized.csv \
-    --device cpu \
-    --batch-size 32
+    --model-name google/embeddinggemma-300m \
+    --model-type auto-model \
+    --pooling mean
 ```
+
+See [docs/multi_model_support.md](docs/multi_model_support.md) for more model options.
 
 ### Approach 2: OpenAI API Classification
 

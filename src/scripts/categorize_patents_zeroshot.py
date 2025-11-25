@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 """
-Zero-shot patent categorization using BERT embeddings.
+Zero-shot patent categorization using embedding models.
 This approach uses cosine similarity between patent text and category descriptions
 to classify patents without requiring API calls or training data.
+
+Supports multiple HuggingFace models including:
+- sentence-transformers models (e.g., anferico/bert-for-patents)
+- AutoModel models (e.g., google/embeddinggemma-300m)
 """
 import os
 import sys
@@ -18,7 +22,7 @@ from tqdm import tqdm
 # Add project root to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from src.embedding.bert_embedder import BertEmbedder
+from src.embedding.generic_embedder import GenericEmbedder
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -38,12 +42,12 @@ CATEGORIES_WITH_DEFINITIONS = {
 
 
 class ZeroShotPatentClassifier:
-    """Zero-shot classifier for patents using BERT embeddings."""
+    """Zero-shot classifier for patents using embedding models."""
 
     def __init__(self, model_config: Dict):
-        """Initialize the classifier with BERT model configuration."""
-        logger.info("Initializing BERT embedder for zero-shot classification...")
-        self.embedder = BertEmbedder(model_config)
+        """Initialize the classifier with embedding model configuration."""
+        logger.info("Initializing embedder for zero-shot classification...")
+        self.embedder = GenericEmbedder(model_config)
         self.categories = list(CATEGORIES_WITH_DEFINITIONS.keys())
         self.category_embeddings = None
         self._encode_categories()
@@ -187,10 +191,12 @@ def main(args):
     model_config = {
         'embedding': {
             'model_name': args.model_name,
+            'model_type': args.model_type,
             'device': args.device,
             'batch_size': args.batch_size,
-            'max_length': 512,
-            'normalize': True
+            'max_length': args.max_length,
+            'normalize': True,
+            'pooling': args.pooling
         }
     }
 
@@ -262,7 +268,24 @@ def main(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Zero-shot patent categorization using BERT embeddings."
+        description="Zero-shot patent categorization using HuggingFace embedding models. "
+                    "Supports sentence-transformers and AutoModel-based models.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Using default BERT-for-patents (sentence-transformers)
+  python categorize_patents_zeroshot.py --input-file patents.csv
+
+  # Using Google's EmbeddingGemma (AutoModel)
+  python categorize_patents_zeroshot.py \\
+      --model-name google/embeddinggemma-300m \\
+      --model-type auto-model \\
+      --pooling mean
+
+  # Using other sentence-transformers models
+  python categorize_patents_zeroshot.py \\
+      --model-name sentence-transformers/all-MiniLM-L6-v2
+        """
     )
 
     # Input/Output
@@ -309,7 +332,27 @@ if __name__ == "__main__":
         "--model-name",
         type=str,
         default="anferico/bert-for-patents",
-        help="BERT model to use for embeddings"
+        help="HuggingFace model name (e.g., anferico/bert-for-patents, google/embeddinggemma-300m)"
+    )
+    parser.add_argument(
+        "--model-type",
+        type=str,
+        default="sentence-transformers",
+        choices=["sentence-transformers", "auto-model"],
+        help="Type of model: 'sentence-transformers' (default) or 'auto-model' for raw transformers"
+    )
+    parser.add_argument(
+        "--pooling",
+        type=str,
+        default="mean",
+        choices=["mean", "cls", "max"],
+        help="Pooling strategy for auto-model type (mean, cls, max). Ignored for sentence-transformers."
+    )
+    parser.add_argument(
+        "--max-length",
+        type=int,
+        default=512,
+        help="Maximum sequence length for tokenization"
     )
     parser.add_argument(
         "--device",
