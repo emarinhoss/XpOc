@@ -1,0 +1,55 @@
+# Ensemble Models Configuration
+# This file defines the 5 models used for ensemble voting in patent categorization.
+# Each model gets one vote, and the final classification is determined by majority.
+
+ensemble_models:
+  # Model 1: BERT fine-tuned on patents (domain-specific)
+  - name: bert-for-patents
+    model_name: anferico/bert-for-patents
+    model_type: sentence-transformers
+    pooling: mean
+
+  # Model 2: Google's efficient embedding model
+  - name: embeddinggemma
+    model_name: google/embeddinggemma-300m
+    model_type: auto-model
+    pooling: mean
+
+  # Model 3: High-quality general-purpose model
+  - name: mpnet
+    model_name: sentence-transformers/all-mpnet-base-v2
+    model_type: sentence-transformers
+    pooling: mean
+
+  # Model 4: Fast, lightweight model
+  - name: minilm
+    model_name: sentence-transformers/all-MiniLM-L6-v2
+    model_type: sentence-transformers
+    pooling: mean
+
+  # Model 5: Scientific domain model
+  - name: scibert
+    model_name: allenai/scibert_scivocab_uncased
+    model_type: auto-model
+    pooling: mean
+
+# Alternative model suggestions:
+# Uncomment and modify the ensemble_models list above to use different models
+
+# For biomedical/pharma patents:
+#  - name: pubmedbert
+#    model_name: microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract
+#    model_type: auto-model
+#    pooling: mean
+
+# For multilingual patents:
+#  - name: multilingual
+#    model_name: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+#    model_type: sentence-transformers
+#    pooling: mean
+
+# For highest quality (slower):
+#  - name: roberta
+#    model_name: sentence-transformers/all-roberta-large-v1
+#    model_type: sentence-transformers
+#    pooling: mean

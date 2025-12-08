@@ -76,6 +76,37 @@ python src/scripts/categorize_patents_zeroshot.py \
 
 See [docs/multi_model_support.md](docs/multi_model_support.md) for more model options.
 
+### Approach 1b: Ensemble Voting ⭐⭐ **HIGHEST ACCURACY**
+
+Uses **5 different models with majority voting** for maximum accuracy. Each model votes on a category, and the winner is selected by majority (with tie-breaking by confidence).
+
+**Default models:**
+- `anferico/bert-for-patents` (patents domain)
+- `google/embeddinggemma-300m` (efficient)
+- `all-mpnet-base-v2` (high quality)
+- `all-MiniLM-L6-v2` (fast)
+- `allenai/scibert_scivocab_uncased` (scientific)
+
+**Benefits:**
+- **Highest accuracy**: Reduces errors through multi-model agreement
+- **Confidence calibration**: High vote count = high reliability
+- **No API costs**: Still $0 (runs locally)
+- **Detailed analysis**: See individual model predictions
+
+**Trade-offs:**
+- **5x slower**: Must run 5 models (~38 hours on GPU for 900k patents)
+- **More memory**: ~1.7 GB total
+
+**Usage:**
+```bash
+python src/scripts/categorize_patents_ensemble.py \
+    --input-file data/processed/patents.csv \
+    --output-file data/processed/patents_ensemble.csv \
+    --device cuda
+```
+
+See [docs/ensemble_voting.md](docs/ensemble_voting.md) for detailed explanation.
+
 ### Approach 2: OpenAI API Classification
 
 Uses GPT-3.5-turbo or Azure OpenAI to classify patents via API calls.
