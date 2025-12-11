@@ -107,6 +107,25 @@ python src/scripts/categorize_patents_ensemble.py \
 
 See [docs/ensemble_voting.md](docs/ensemble_voting.md) for detailed explanation.
 
+**Alternative: Ensemble Aggregation** (Recommended for large datasets)
+
+For more flexibility, run models separately and aggregate afterwards:
+
+```bash
+# Step 1: Run each model separately (can be parallelized)
+python src/scripts/categorize_patents_zeroshot.py \
+    --model-name anferico/bert-for-patents \
+    --output-file results/bert.csv ...
+
+# Step 2: Aggregate results from all models
+python src/scripts/aggregate_ensemble_voting.py \
+    --input-files results/bert.csv results/gemma.csv ... \
+    --output-file results/ensemble.csv
+```
+
+**Benefits:** 5x faster with parallel execution, lower memory per model, more flexible.
+See [docs/ensemble_aggregation_workflow.md](docs/ensemble_aggregation_workflow.md) for complete workflow.
+
 ### Approach 2: OpenAI API Classification
 
 Uses GPT-3.5-turbo or Azure OpenAI to classify patents via API calls.
