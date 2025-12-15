@@ -66,12 +66,12 @@ O*NET-SOC Code,Title,Task,Scale Name,Category,Data Value,2021,2022,2023,2024,202
 - `O*NET-SOC Code`: Occupation code
 - `Title`: Occupation title
 - `Task`: Task description
-- `Scale Name`: O*NET rating scale (e.g., Importance, Level) - if present in input
-- `Category`: Task category (e.g., Core, Supplemental) - if present in input
-- `Data Value`: O*NET rating value - if present in input
+- `Scale Name`: O*NET rating scale (e.g., Importance, Level)
+- `Category`: Task category (e.g., Core, Supplemental)
+- `Data Value`: O*NET rating value
 - `2021`, `2022`, ...: Count of patents matching this task (similarity ≥ threshold)
 
-**Note:** The columns `Scale Name`, `Category`, and `Data Value` are preserved from the O*NET Task Ratings file if present, allowing you to filter or weight results by task importance or other ratings.
+**Note:** The columns `Scale Name`, `Category`, and `Data Value` are **required** and must be present in the O*NET Task Ratings input file. These allow you to filter or weight results by task importance or other ratings.
 
 ## Usage
 
@@ -84,7 +84,9 @@ python src/scripts/aggregate_ensemble_voting.py \
     --output-file data/processed/patents_ensemble.csv
 ```
 
-2. **O*NET tasks data** - Download from O*NET (Task Ratings file)
+2. **O*NET tasks data** - Download the Task Ratings file from O*NET
+   - Required columns: `O*NET-SOC Code`, `Title`, `Task`, `Scale Name`, `Category`, `Data Value`
+   - The script will fail with a clear error if these columns are missing
 
 ### Basic Usage
 

@@ -102,16 +102,8 @@ class CategorySpecificMatcher:
 
         logger.info(f"Found {len(category_patents)} patents for '{category}'")
 
-        # Initialize results dataframe - keep additional columns if they exist
-        base_columns = ['O*NET-SOC Code', 'Title', 'Task']
-        optional_columns = ['Scale Name', 'Category', 'Data Value']
-
-        # Include optional columns if they exist in the dataframe
-        columns_to_keep = base_columns.copy()
-        for col in optional_columns:
-            if col in onet_df.columns:
-                columns_to_keep.append(col)
-
+        # Initialize results dataframe with required columns
+        columns_to_keep = ['O*NET-SOC Code', 'Title', 'Task', 'Scale Name', 'Category', 'Data Value']
         result_df = onet_df[columns_to_keep].copy()
 
         # Get unique tasks and encode once
@@ -261,20 +253,13 @@ def main(args):
     logger.info(f"Loaded {len(onet_df)} O*NET task records")
 
     # Check for required columns
-    required_cols = ['O*NET-SOC Code', 'Title', 'Task']
+    required_cols = ['O*NET-SOC Code', 'Title', 'Task', 'Scale Name', 'Category', 'Data Value']
     missing_cols = [col for col in required_cols if col not in onet_df.columns]
     if missing_cols:
         logger.error(f"Missing required columns in O*NET file: {missing_cols}")
         logger.error(f"Available columns: {list(onet_df.columns)}")
+        logger.error("The O*NET Task Ratings file must include 'Scale Name', 'Category', and 'Data Value' columns.")
         return
-
-    # Check for optional columns
-    optional_cols = ['Scale Name', 'Category', 'Data Value']
-    found_optional = [col for col in optional_cols if col in onet_df.columns]
-    if found_optional:
-        logger.info(f"Found optional columns: {found_optional}")
-    else:
-        logger.info("Optional columns (Scale Name, Category, Data Value) not found - continuing with basic columns")
 
     # Get years to process
     years = sorted(patents_df['year'].dropna().unique())
