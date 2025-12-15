@@ -307,34 +307,66 @@ def main(args):
         output_prefix=args.output_prefix
     )
 
+    # Apply filters if specified
+    original_count = len(result_df)
+    filtered_df = result_df.copy()
+
+    if args.min_confidence is not None or args.min_votes is not None:
+        logger.info("\nApplying filters...")
+
+        if args.min_confidence is not None:
+            before_filter = len(filtered_df)
+            filtered_df = filtered_df[
+                filtered_df[f'{args.output_prefix}_confidence'] >= args.min_confidence
+            ]
+            filtered_count = before_filter - len(filtered_df)
+            logger.info(f"  Confidence filter (>= {args.min_confidence}): "
+                       f"removed {filtered_count} rows, {len(filtered_df)} remaining")
+
+        if args.min_votes is not None:
+            before_filter = len(filtered_df)
+            filtered_df = filtered_df[
+                filtered_df[f'{args.output_prefix}_votes'] >= args.min_votes
+            ]
+            filtered_count = before_filter - len(filtered_df)
+            logger.info(f"  Vote filter (>= {args.min_votes}): "
+                       f"removed {filtered_count} rows, {len(filtered_df)} remaining")
+
+        total_filtered = original_count - len(filtered_df)
+        logger.info(f"\nTotal filtered: {total_filtered} rows "
+                   f"({100*total_filtered/original_count:.1f}%)")
+        logger.info(f"Remaining: {len(filtered_df)} rows "
+                   f"({100*len(filtered_df)/original_count:.1f}%)")
+
     # Save results
     output_path = Path(args.output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    logger.info(f"Saving results to {output_path}...")
-    result_df.to_csv(output_path, index=False)
+    logger.info(f"\nSaving results to {output_path}...")
+    filtered_df.to_csv(output_path, index=False)
 
     # Print statistics
     logger.info("\n" + "="*60)
     logger.info("ENSEMBLE AGGREGATION COMPLETE")
     logger.info("="*60)
-    logger.info(f"Total patents: {len(result_df)}")
+    logger.info(f"Original patents: {original_count}")
+    logger.info(f"Output patents: {len(filtered_df)}")
     logger.info(f"Number of models: {len(actual_model_names)}")
 
     logger.info(f"\n{args.output_prefix.title()} category distribution:")
-    category_counts = result_df[f'{args.output_prefix}_category'].value_counts()
+    category_counts = filtered_df[f'{args.output_prefix}_category'].value_counts()
     for cat, count in category_counts.items():
-        pct = (count / len(result_df)) * 100
+        pct = (count / len(filtered_df)) * 100
         logger.info(f"  {cat}: {count} ({pct:.1f}%)")
 
     logger.info(f"\nAverage {args.output_prefix} confidence: "
-               f"{result_df[f'{args.output_prefix}_confidence'].mean():.3f}")
+               f"{filtered_df[f'{args.output_prefix}_confidence'].mean():.3f}")
 
     # Vote distribution
     logger.info(f"\nVote count distribution:")
-    vote_counts = result_df[f'{args.output_prefix}_votes'].value_counts().sort_index()
+    vote_counts = filtered_df[f'{args.output_prefix}_votes'].value_counts().sort_index()
     for votes, count in vote_counts.items():
-        pct = (count / len(result_df)) * 100
+        pct = (count / len(filtered_df)) * 100
         logger.info(f"  {int(votes)} votes: {count} patents ({pct:.1f}%)")
 
     logger.info(f"\nResults saved to: {output_path}")
@@ -363,6 +395,14 @@ Examples:
   python aggregate_ensemble_voting.py \\
       --file-list model_results.txt \\
       --output-file results_ensemble.csv
+
+  # With confidence and vote filtering (quality control)
+  python aggregate_ensemble_voting.py \\
+      --input-files results_*.csv \\
+      --model-names bert gemma mpnet minilm scibert \\
+      --min-confidence 0.7 \\
+      --min-votes 4 \\
+      --output-file results_ensemble_high_quality.csv
 
   # Where model_results.txt contains:
   #   results_bert.csv
@@ -426,6 +466,20 @@ Examples:
         type=str,
         default="ensemble",
         help="Prefix for ensemble output columns (default: ensemble)"
+    )
+
+    # Filtering options
+    parser.add_argument(
+        "--min-confidence",
+        type=float,
+        default=None,
+        help="Minimum ensemble confidence to include in output (default: no filtering)"
+    )
+    parser.add_argument(
+        "--min-votes",
+        type=int,
+        default=None,
+        help="Minimum number of votes to include in output (default: no filtering)"
     )
 
     args = parser.parse_args()
