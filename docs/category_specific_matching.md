@@ -55,10 +55,10 @@ results/category_specific/
 
 Each CSV contains:
 ```csv
-O*NET-SOC Code,Title,Task,2021,2022,2023,2024,2025
-15-2051.00,Data Scientist,"Analyze data using ML",45,67,89,102,115
-15-2051.00,Data Scientist,"Build predictive models",38,52,71,85,98
-15-1252.00,Software Engineer,"Implement ML algorithms",12,18,24,31,42
+O*NET-SOC Code,Title,Task,Scale Name,Category,Data Value,2021,2022,2023,2024,2025
+15-2051.00,Data Scientist,"Analyze data using ML",Importance,Core,4.5,45,67,89,102,115
+15-2051.00,Data Scientist,"Build predictive models",Importance,Core,4.2,38,52,71,85,98
+15-1252.00,Software Engineer,"Implement ML algorithms",Importance,Supplemental,3.8,12,18,24,31,42
 ...
 ```
 
@@ -66,7 +66,12 @@ O*NET-SOC Code,Title,Task,2021,2022,2023,2024,2025
 - `O*NET-SOC Code`: Occupation code
 - `Title`: Occupation title
 - `Task`: Task description
+- `Scale Name`: O*NET rating scale (e.g., Importance, Level) - if present in input
+- `Category`: Task category (e.g., Core, Supplemental) - if present in input
+- `Data Value`: O*NET rating value - if present in input
 - `2021`, `2022`, ...: Count of patents matching this task (similarity ≥ threshold)
+
+**Note:** The columns `Scale Name`, `Category`, and `Data Value` are preserved from the O*NET Task Ratings file if present, allowing you to filter or weight results by task importance or other ratings.
 
 ## Usage
 
