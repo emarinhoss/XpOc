@@ -104,6 +104,25 @@ python src/scripts/aggregate_ensemble_voting.py \
     --output-file results/patents_ensemble.csv
 ```
 
+**Quality filtering** (optional - keep only high-confidence predictions):
+
+```bash
+python src/scripts/aggregate_ensemble_voting.py \
+    --input-files results/patents_bert.csv \
+                  results/patents_gemma.csv \
+                  results/patents_mpnet.csv \
+                  results/patents_minilm.csv \
+                  results/patents_scibert.csv \
+    --model-names bert gemma mpnet minilm scibert \
+    --min-confidence 0.7 \
+    --min-votes 4 \
+    --output-file results/patents_ensemble_high_quality.csv
+```
+
+This will only include patents where:
+- Ensemble confidence ≥ 0.7
+- At least 4 out of 5 models agreed on the category
+
 **Alternative: Using a file list**
 
 Create a text file `model_results.txt`:
@@ -142,6 +161,64 @@ print(df['ensemble_votes'].value_counts().sort_index())
 # High confidence cases (4-5 votes)
 high_conf = df[df['ensemble_votes'] >= 4]
 print(f"\nHigh agreement: {len(high_conf)} ({100*len(high_conf)/len(df):.1f}%)")
+```
+
+## Quality Control with Filtering
+
+The aggregation script supports filtering to keep only high-quality predictions.
+
+### Confidence Filtering
+
+Keep only patents where the ensemble has high confidence:
+
+```bash
+python src/scripts/aggregate_ensemble_voting.py \
+    --input-files results/patents_*.csv \
+    --min-confidence 0.75 \
+    --output-file results/ensemble_high_confidence.csv
+```
+
+This filters out patents where the average confidence of agreeing models is below 0.75.
+
+### Vote Filtering
+
+Keep only patents where models strongly agree:
+
+```bash
+python src/scripts/aggregate_ensemble_voting.py \
+    --input-files results/patents_*.csv \
+    --min-votes 4 \
+    --output-file results/ensemble_strong_agreement.csv
+```
+
+With 5 models, `--min-votes 4` means at least 4 models voted for the same category.
+
+### Combined Filtering
+
+For maximum quality, combine both filters:
+
+```bash
+python src/scripts/aggregate_ensemble_voting.py \
+    --input-files results/patents_*.csv \
+    --min-confidence 0.7 \
+    --min-votes 4 \
+    --output-file results/ensemble_highest_quality.csv
+```
+
+**Quality levels**:
+- `--min-votes 5`: Unanimous agreement (highest quality, fewer results)
+- `--min-votes 4`: Strong agreement (high quality, balanced)
+- `--min-votes 3`: Majority agreement (moderate quality, more results)
+- No filter: All predictions (includes uncertain cases)
+
+**Example output with filtering**:
+```
+Applying filters...
+  Confidence filter (>= 0.7): removed 12,451 rows, 887,549 remaining
+  Vote filter (>= 4): removed 156,332 rows, 731,217 remaining
+
+Total filtered: 168,783 rows (18.8%)
+Remaining: 731,217 rows (81.2%)
 ```
 
 ## Advanced Workflows
