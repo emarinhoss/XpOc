@@ -88,17 +88,20 @@ class PatentOccupationPipeline:
         """Create sample O*NET data for demonstration."""
         sample_data = {
             'Task ID': range(1, 51),
-            'Task': [f'Perform task related to {area} using {tool}' 
+            'Task': [f'Perform task related to {area} using {tool}'
                     for area in ['analysis', 'design', 'management', 'development', 'testing']
-                    for tool in ['AI tools', 'ML algorithms', 'data systems', 'automation', 
-                                 'neural networks', 'NLP', 'computer vision', 'robotics', 
+                    for tool in ['AI tools', 'ML algorithms', 'data systems', 'automation',
+                                 'neural networks', 'NLP', 'computer vision', 'robotics',
                                  'expert systems', 'decision trees']],
-            'Title': ['Data Scientist'] * 10 + ['Software Engineer'] * 10 + 
+            'Title': ['Data Scientist'] * 10 + ['Software Engineer'] * 10 +
                     ['AI Specialist'] * 10 + ['ML Engineer'] * 10 + ['Research Scientist'] * 10,
-            'O*NET-SOC Code': ['15-2051.00'] * 10 + ['15-1252.00'] * 10 + 
-                             ['15-1299.00'] * 10 + ['15-1299.01'] * 10 + ['19-1021.00'] * 10
+            'O*NET-SOC Code': ['15-2051.00'] * 10 + ['15-1252.00'] * 10 +
+                             ['15-1299.00'] * 10 + ['15-1299.01'] * 10 + ['19-1021.00'] * 10,
+            'Scale Name': ['Importance'] * 50,
+            'Category': ['Core'] * 25 + ['Supplemental'] * 25,
+            'Data Value': [4.0, 4.5, 3.5, 4.2, 3.8] * 10
         }
-        
+
         df = pd.DataFrame(sample_data)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(output_path, index=False)

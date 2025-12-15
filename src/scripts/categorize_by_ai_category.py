@@ -102,8 +102,17 @@ class CategorySpecificMatcher:
 
         logger.info(f"Found {len(category_patents)} patents for '{category}'")
 
-        # Initialize results dataframe
-        result_df = onet_df[['O*NET-SOC Code', 'Title', 'Task']].copy()
+        # Initialize results dataframe - keep additional columns if they exist
+        base_columns = ['O*NET-SOC Code', 'Title', 'Task']
+        optional_columns = ['Scale Name', 'Category', 'Data Value']
+
+        # Include optional columns if they exist in the dataframe
+        columns_to_keep = base_columns.copy()
+        for col in optional_columns:
+            if col in onet_df.columns:
+                columns_to_keep.append(col)
+
+        result_df = onet_df[columns_to_keep].copy()
 
         # Get unique tasks and encode once
         tasks = onet_df['Task'].unique().tolist()
@@ -258,6 +267,14 @@ def main(args):
         logger.error(f"Missing required columns in O*NET file: {missing_cols}")
         logger.error(f"Available columns: {list(onet_df.columns)}")
         return
+
+    # Check for optional columns
+    optional_cols = ['Scale Name', 'Category', 'Data Value']
+    found_optional = [col for col in optional_cols if col in onet_df.columns]
+    if found_optional:
+        logger.info(f"Found optional columns: {found_optional}")
+    else:
+        logger.info("Optional columns (Scale Name, Category, Data Value) not found - continuing with basic columns")
 
     # Get years to process
     years = sorted(patents_df['year'].dropna().unique())

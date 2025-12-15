@@ -110,25 +110,28 @@ class ONetLoader:
                 'Build distributed systems',
                 'Implement blockchain solutions'
             ],
-            'Title': ['Data Scientist'] * 10 + 
-                    ['Machine Learning Engineer'] * 10 + 
-                    ['AI Specialist'] * 10 + 
-                    ['Software Engineer'] * 10 + 
+            'Title': ['Data Scientist'] * 10 +
+                    ['Machine Learning Engineer'] * 10 +
+                    ['AI Specialist'] * 10 +
+                    ['Software Engineer'] * 10 +
                     ['Research Scientist'] * 10,
-            'O*NET-SOC Code': ['15-2051.00'] * 10 + 
-                             ['15-1299.08'] * 10 + 
-                             ['15-1299.09'] * 10 + 
-                             ['15-1252.00'] * 10 + 
-                             ['19-1021.00'] * 10
+            'O*NET-SOC Code': ['15-2051.00'] * 10 +
+                             ['15-1299.08'] * 10 +
+                             ['15-1299.09'] * 10 +
+                             ['15-1252.00'] * 10 +
+                             ['19-1021.00'] * 10,
+            'Scale Name': ['Importance'] * 50,
+            'Category': ['Core'] * 25 + ['Supplemental'] * 25,
+            'Data Value': [4.0, 4.5, 3.5, 4.2, 3.8] * 10
         }
-        
+
         df = pd.DataFrame(sample_data)
         filepath.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Save as CSV (more reliable than Excel)
         if filepath.suffix == '.xlsx':
             filepath = filepath.with_suffix('.csv')
-        
+
         df.to_csv(filepath, index=False)
         logger.info(f"Created sample O*NET data at {filepath}")
     
