@@ -7,6 +7,7 @@ A system for matching AI patents with occupational tasks using BERT embeddings a
 - [Features](#features)
 - [System Architecture](#system-architecture)
 - [Patent Categorization](#patent-categorization)
+- [Patent-Occupation Matching](#patent-occupation-matching)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
@@ -160,6 +161,49 @@ Both approaches classify patents into these 8 categories:
 - **speech recognition**: Speech understanding
 
 See [docs/patent_categorization_comparison.md](docs/patent_categorization_comparison.md) for a detailed comparison.
+
+## Patent-Occupation Matching
+
+After categorizing patents, match them with O*NET occupational tasks to understand AI's impact on work.
+
+### Standard Matching (All AI Patents Combined)
+
+Match all AI patents to occupational tasks in one run:
+
+```bash
+python src/scripts/run_pipeline.py --config config/config.yaml
+```
+
+**Output:** Single file with all AI patent matches across years.
+
+**Best for:** Understanding overall AI impact on occupations.
+
+### Category-Specific Matching ⭐ **For Detailed Analysis**
+
+Run matching separately for each of the 8 AI categories to reveal differential impacts:
+
+```bash
+python src/scripts/categorize_by_ai_category.py \
+    --patents-file data/processed/patents_ensemble.csv \
+    --onet-file data/raw/onet/Task_Ratings.xlsx \
+    --output-dir results/category_specific \
+    --device cuda
+```
+
+**Output:** 8 separate files showing how each AI category affects tasks:
+- `AI_2021to2025_abstractTitleFor_machine_learning_0.75.csv`
+- `AI_2021to2025_abstractTitleFor_nlp_0.75.csv`
+- `AI_2021to2025_abstractTitleFor_computer_vision_0.75.csv`
+- ... (5 more categories)
+
+**Benefits:**
+- **Differential impact analysis**: See which tasks are affected by computer vision vs NLP
+- **Category-specific trends**: Track how ML impact grows differently than other categories
+- **Fine-grained insights**: Understand which AI technologies affect which occupations
+
+**Best for:** Research requiring detailed understanding of different AI technology impacts.
+
+See [docs/category_specific_matching.md](docs/category_specific_matching.md) for complete guide.
 
 ## Installation
 
