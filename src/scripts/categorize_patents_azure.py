@@ -107,10 +107,12 @@ class AzureEmbedder:
 
         # Initialize Azure OpenAI client
         logger.info("Initializing Azure OpenAI client...")
+        api_key = os.environ["AZURE_OPENAI_API_KEY"]
         self.client = AzureOpenAI(
-            api_key=os.environ["AZURE_OPENAI_API_KEY"],
+            azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+            api_key=api_key,
             api_version=os.environ["OPENAI_API_VERSION"],
-            azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"]
+            default_headers={"Ocp-Apim-Subscription-Key": api_key}
         )
 
         logger.info(f"Azure embedder initialized (rate limit: {rate_limit} QPS, batch size: {batch_size})")
