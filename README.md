@@ -77,6 +77,49 @@ python src/scripts/categorize_patents_zeroshot.py \
 
 See [docs/multi_model_support.md](docs/multi_model_support.md) for more model options.
 
+### Approach 1a: Azure OpenAI Embeddings ⭐ **CLOUD-BASED**
+
+Uses Azure OpenAI embedding models for zero-shot classification with built-in rate limiting.
+
+**Benefits:**
+- **No GPU needed**: Runs on any machine
+- **Fast**: ~2-3k patents/second with proper rate limits
+- **High quality**: Azure OpenAI embeddings (ada-002, ada-003, etc.)
+- **Cheaper than GPT**: ~$27 for 900k patents vs $9k-$18k
+
+**Trade-offs:**
+- **Not free**: Costs money (but ~300x cheaper than GPT classification)
+- **Requires Azure**: Need Azure OpenAI subscription
+- **Internet required**: API calls
+
+**Usage:**
+```bash
+# Set environment variables
+export AZURE_OPENAI_API_KEY="your-key"
+export OPENAI_API_VERSION="2023-05-15"
+export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com/"
+
+# Run with default settings (500 QPS)
+python src/scripts/categorize_patents_azure.py \
+    --input-file data/processed/patents.csv \
+    --output-file data/processed/patents_categorized.csv
+
+# Custom rate limit (adjust based on your Azure quota)
+python src/scripts/categorize_patents_azure.py \
+    --input-file data/processed/patents.csv \
+    --output-file data/processed/patents_categorized.csv \
+    --rate-limit 100 \
+    --deployment-name text-embedding-ada-002
+```
+
+**When to use:**
+- Production environment without GPU infrastructure
+- Moderate budget (~$30 for 900k patents)
+- Need consistent cloud-based performance
+- Already using Azure services
+
+See [docs/azure_categorization.md](docs/azure_categorization.md) for complete guide and rate limiting configuration.
+
 ### Approach 1b: Ensemble Voting ⭐⭐ **HIGHEST ACCURACY**
 
 Uses **5 different models with majority voting** for maximum accuracy. Each model votes on a category, and the winner is selected by majority (with tie-breaking by confidence).
