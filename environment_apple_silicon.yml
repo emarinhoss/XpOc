@@ -2,9 +2,10 @@ name: xpoc-m2
 channels:
   - conda-forge
   - pytorch
-  - defaults
 
 dependencies:
+  # Explicitly add pip to avoid warnings
+  - pip
   # Python
   - python=3.11
 
