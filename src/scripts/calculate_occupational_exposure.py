@@ -206,11 +206,24 @@ def main(args):
 
     # Determine year columns from first file
     sample_df = pd.read_csv(csv_files[0])
-    year_columns = [col for col in sample_df.columns if col.isdigit()]
-    year_columns = sorted(year_columns)
+
+    # Detect year columns - handle both "2021" and "2021.0" formats
+    year_columns = []
+    for col in sample_df.columns:
+        try:
+            # Try to convert to float and check if it's a reasonable year
+            year_val = float(col)
+            if 1900 <= year_val <= 2100:
+                year_columns.append(col)
+        except (ValueError, TypeError):
+            # Not a numeric column
+            continue
+
+    year_columns = sorted(year_columns, key=lambda x: float(x))
 
     if len(year_columns) == 0:
         logger.error("No year columns found in input files")
+        logger.error(f"Available columns: {list(sample_df.columns)}")
         return
 
     logger.info(f"\nYear columns detected: {year_columns}")
