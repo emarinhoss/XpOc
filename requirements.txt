@@ -16,3 +16,5 @@ pytest
 black
 flake8
 openai>=1.0.0
+plotly>=5.0.0
+kaleido

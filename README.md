@@ -248,6 +248,47 @@ O*NET-SOC Code,Title,AI_Category,2021,2022,2023,2024,2025
 
 See [docs/occupational_exposure.md](docs/occupational_exposure.md) for detailed explanation and analysis examples.
 
+## Visualization
+
+### Sankey Diagram: AI Category → Task → Occupation ⭐ **Interactive Storytelling**
+
+Create animated flow diagrams showing how AI technologies impact occupations through specific tasks.
+
+```bash
+python src/scripts/create_sankey_visualization.py \
+    --input-dir results/category_specific \
+    --output-dir results/visualizations \
+    --top-occupations 20 \
+    --top-tasks-per-category 3
+```
+
+**What it shows:**
+
+```
+Machine Learning ══════> "Analyze medical images" ══════> Radiologist
+                ════════> "Build predictive models" ═════> Data Scientist
+
+Computer Vision  ══════> "Inspect products" ════════════> Quality Inspector
+                ════════> "Analyze medical images" ══════> Radiologist
+
+NLP             ═══════> "Draft legal documents" ═══════> Legal Assistant
+```
+
+**Features:**
+- **Animated:** Shows change from 2021 → 2025
+- **Interactive HTML:** Hover for details, play/pause controls
+- **Static PNGs:** One per year for presentations
+- **Concrete stories:** See specific task-level mechanisms of AI impact
+- **Breadth view:** 20 occupations × 8 AI categories × 3 tasks = comprehensive overview
+
+**Outputs:**
+- `sankey_ai_impact.html` - Interactive, shareable visualization
+- `sankey_ai_impact_2021.png` through `sankey_ai_impact_2025.png` - Static images
+
+**Best for:** Public communication, presentations, understanding HOW AI affects jobs (not just that it does).
+
+See [docs/sankey_visualization.md](docs/sankey_visualization.md) for complete guide and customization options.
+
 ## Installation
 
 ### Prerequisites
