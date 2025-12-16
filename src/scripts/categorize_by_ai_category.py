@@ -124,7 +124,7 @@ class CategorySpecificMatcher:
 
             if len(year_patents) == 0:
                 logger.warning(f"No patents found for year {year} in category '{category}'")
-                result_df[str(year)] = 0
+                result_df[str(int(year))] = 0
                 continue
 
             logger.info(f"  Found {len(year_patents)} patents for year {year}")
@@ -139,7 +139,7 @@ class CategorySpecificMatcher:
                     ).str.strip()
                 else:
                     logger.error(f"Text column '{text_column}' not found and cannot be created")
-                    result_df[str(year)] = 0
+                    result_df[str(int(year))] = 0
                     continue
 
             patent_texts = year_patents[text_column].fillna('').tolist()
@@ -166,7 +166,8 @@ class CategorySpecificMatcher:
                 count = np.sum(task_distances >= threshold)
                 counts.append(count)
 
-            result_df[str(year)] = counts
+            # Convert year to int to avoid "2021.0" column names
+            result_df[str(int(year))] = counts
 
         return result_df
 
@@ -303,14 +304,15 @@ def main(args):
         result_df.to_csv(output_file, index=False)
 
         # Print summary statistics
-        year_cols = [str(y) for y in years]
+        year_cols = [str(int(y)) for y in years]
         logger.info(f"\nSummary for '{category}':")
         logger.info(f"  Total tasks: {len(result_df)}")
         for year in years:
-            total_matches = result_df[str(year)].sum()
-            tasks_with_matches = (result_df[str(year)] > 0).sum()
-            avg_matches = result_df[str(year)].mean()
-            logger.info(f"  Year {year}: {total_matches} total matches, "
+            year_col = str(int(year))
+            total_matches = result_df[year_col].sum()
+            tasks_with_matches = (result_df[year_col] > 0).sum()
+            avg_matches = result_df[year_col].mean()
+            logger.info(f"  Year {int(year)}: {total_matches} total matches, "
                        f"{tasks_with_matches} tasks with matches, "
                        f"avg {avg_matches:.1f} matches/task")
 
