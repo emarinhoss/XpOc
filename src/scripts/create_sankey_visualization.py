@@ -523,15 +523,11 @@ def main(args):
     # Static images for each year
     if args.output_format in ['png', 'both']:
         logger.info("\nGenerating static images for each year...")
-        for i, year in enumerate(tqdm(years, desc="Saving PNGs")):
-            # Update to specific year
-            fig.update_layout(
-                title=f"AI Technology Impact Flow: Categories → Tasks → Occupations<br><sub>Year: {year}</sub>"
-            )
-
-            # Update data to specific year
+        for year in tqdm(years, desc="Saving PNGs"):
+            # Create a new figure for this specific year
             data = sankey_data_by_year[year]
-            fig.data = [go.Sankey(
+
+            year_fig = go.Figure(data=[go.Sankey(
                 node=dict(
                     pad=15,
                     thickness=20,
@@ -545,10 +541,22 @@ def main(args):
                     value=data['links_value'],
                     color=data['links_color']
                 )
-            )]
+            )])
+
+            year_fig.update_layout(
+                title=dict(
+                    text=f"AI Technology Impact Flow: Categories → Tasks → Occupations<br><sub>Year: {year}</sub>",
+                    x=0.5,
+                    xanchor='center',
+                    font=dict(size=20)
+                ),
+                font=dict(size=12),
+                height=900,
+                width=1400
+            )
 
             png_path = output_dir / f"{args.output_name}_{year}.png"
-            fig.write_image(str(png_path), width=1400, height=900)
+            year_fig.write_image(str(png_path), width=1400, height=900)
 
     logger.info("\n" + "="*60)
     logger.info("VISUALIZATION COMPLETE")
