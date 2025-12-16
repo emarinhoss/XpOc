@@ -44,6 +44,25 @@ CATEGORY_COLORS = {
 }
 
 
+def hex_to_rgba(hex_color: str, alpha: float = 1.0) -> str:
+    """
+    Convert hex color to rgba format.
+
+    Args:
+        hex_color: Hex color string (e.g., '#1f77b4')
+        alpha: Alpha/opacity value (0.0 to 1.0)
+
+    Returns:
+        RGBA string (e.g., 'rgba(31, 119, 180, 0.5)')
+    """
+    hex_color = hex_color.lstrip('#')
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    return f'rgba({r}, {g}, {b}, {alpha})'
+
+
+
 def extract_category_from_filename(filepath: Path) -> str:
     """Extract AI category from filename."""
     filename = filepath.stem
@@ -232,8 +251,8 @@ def build_sankey_data(
             # Truncate long task names
             label = task[:60] + "..." if len(task) > 60 else task
             node_labels.append(label)
-            # Use lighter shade of category color
-            node_colors.append(CATEGORY_COLORS.get(cat, '#999999') + '80')  # Add transparency
+            # Use lighter shade of category color with transparency
+            node_colors.append(hex_to_rgba(CATEGORY_COLORS.get(cat, '#999999'), 0.5))
             task_to_category[task] = cat
 
     # 3. Occupation nodes (targets)
@@ -292,7 +311,7 @@ def build_sankey_data(
                     links_source.append(cat_idx)
                     links_target.append(task_node_idx)
                     links_value.append(total_task_contrib)
-                    links_color.append(CATEGORY_COLORS.get(cat, '#999999') + '40')
+                    links_color.append(hex_to_rgba(CATEGORY_COLORS.get(cat, '#999999'), 0.25))
 
                     # Task → Occupation links
                     for _, row in task_data.iterrows():
@@ -303,7 +322,7 @@ def build_sankey_data(
                             links_source.append(task_node_idx)
                             links_target.append(occ_code_to_idx[occ_code])
                             links_value.append(contrib)
-                            links_color.append(CATEGORY_COLORS.get(cat, '#999999') + '30')
+                            links_color.append(hex_to_rgba(CATEGORY_COLORS.get(cat, '#999999'), 0.19))
 
     return {
         'nodes': nodes,
