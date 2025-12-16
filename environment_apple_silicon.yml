@@ -1,0 +1,43 @@
+name: xpoc-m2
+channels:
+  - conda-forge
+  - pytorch
+  - defaults
+
+dependencies:
+  # Python
+  - python=3.11
+
+  # Core scientific computing (ARM64 optimized)
+  - numpy>=1.24.0
+  - pandas>=2.0.0
+  - scipy
+
+  # PyTorch with MPS support (Apple Silicon GPU)
+  - pytorch::pytorch>=2.0.0
+  - pytorch::torchvision
+
+  # Visualization
+  - matplotlib
+  - seaborn
+  - plotly>=5.0.0
+
+  # Utilities
+  - pyyaml
+  - tqdm
+  - openpyxl
+
+  # Development tools
+  - jupyter
+  - pytest
+  - black
+  - flake8
+
+  # Install via pip (better ARM64 compatibility)
+  - pip:
+      - sentence-transformers>=2.2.0
+      - transformers>=4.30.0
+      - accelerate>=0.20.0
+      - openai>=1.0.0
+      - kaleido
+      - scikit-learn
