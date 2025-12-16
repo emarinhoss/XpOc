@@ -289,6 +289,53 @@ NLP             ═══════> "Draft legal documents" ═════�
 
 See [docs/sankey_visualization.md](docs/sankey_visualization.md) for complete guide and customization options.
 
+### Scatterplot: Task Importance vs AI Match Count ⭐ **Research & Analysis**
+
+Create scatterplots revealing whether AI is automating critical tasks versus routine ones.
+
+```bash
+python src/scripts/create_importance_scatter.py \
+    --input-dir results/category_specific \
+    --output-dir results/visualizations \
+    --animation --static
+```
+
+**What it shows:**
+
+Four quadrants revealing automation patterns:
+
+```
+High        │ Protected      │ HIGH CONCERN
+Importance  │ (few matches)  │ (many matches)
+            ├────────────────┼────────────────
+Low         │ Minimal Impact │ Routine Auto
+Importance  │ (few matches)  │ (many matches)
+            └────────────────┴────────────────
+                 Low              High
+              AI Matches        AI Matches
+```
+
+**Key insights:**
+- **Top-right:** Important tasks being automated → worker concern
+- **Bottom-right:** Routine task automation → expected pattern
+- **Top-left:** Important tasks still safe from AI
+- **Animation:** Shows how tasks move between quadrants over time
+
+**Features:**
+- **Interactive plots:** Hover for task details, zoom, filter
+- **Animated timeline:** Watch automation progression 2021→2025
+- **Quadrant analysis:** Automatic labeling of high-concern outliers
+- **Category colors:** See which AI technologies target which tasks
+- **Statistical insights:** Correlation between importance and automation
+
+**Outputs:**
+- `importance_scatter_animated.html` - Interactive timeline
+- `importance_scatter_2021.html` through `2025.html` - Individual years
+
+**Best for:** Research papers, policy analysis, understanding whether AI targets skilled vs routine work.
+
+See [docs/importance_scatterplot.md](docs/importance_scatterplot.md) for analysis guide and interpretation.
+
 ## Installation
 
 ### Prerequisites
