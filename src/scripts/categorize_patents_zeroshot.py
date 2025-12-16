@@ -358,8 +358,8 @@ Examples:
         "--device",
         type=str,
         default="cpu",
-        choices=["cpu", "cuda"],
-        help="Device to run model on (cpu or cuda)"
+        choices=["cpu", "cuda", "mps"],
+        help="Device to run model on (cpu, cuda, or mps for Apple Silicon)"
     )
     parser.add_argument(
         "--batch-size",

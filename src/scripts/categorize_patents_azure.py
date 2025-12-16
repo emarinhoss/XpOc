@@ -334,25 +334,42 @@ def main(args):
     df = pd.read_csv(args.input_file)
     logger.info(f"Loaded {len(df)} patents")
 
+    # Apply year filtering if requested
+    if args.start_year is not None:
+        # Try to find a year column
+        year_col = None
+        for col_name in ['year', 'Year', 'filing_year', 'application_year', 'grant_year']:
+            if col_name in df.columns:
+                year_col = col_name
+                break
+
+        if year_col:
+            original_len = len(df)
+            df = df[df[year_col] >= args.start_year].copy()
+            logger.info(f"Filtered by year >= {args.start_year}: {original_len} -> {len(df)} patents")
+        else:
+            logger.warning(f"Year filtering requested but no year column found. Processing all patents.")
+
     # Prepare text for classification
     if args.text_column:
         # Use specified column
+        if args.text_column not in df.columns:
+            logger.error(f"Text column '{args.text_column}' not found in data")
+            return
         patent_texts = df[args.text_column].fillna("").astype(str).tolist()
     else:
-        # Combine title and abstract
-        if 'application_title' in df.columns and 'application_abstract' in df.columns:
-            patent_texts = (
-                df['application_title'].fillna("").astype(str) + ". " +
-                df['application_abstract'].fillna("").astype(str)
-            ).tolist()
-        elif 'title' in df.columns and 'abstract' in df.columns:
-            patent_texts = (
-                df['title'].fillna("").astype(str) + ". " +
-                df['abstract'].fillna("").astype(str)
-            ).tolist()
-        else:
-            logger.error("Could not find title/abstract columns. Use --text-column to specify.")
+        # Combine title and abstract using specified column names
+        if args.title_column not in df.columns:
+            logger.error(f"Title column '{args.title_column}' not found in data. Use --title-column to specify.")
             return
+        if args.abstract_column not in df.columns:
+            logger.error(f"Abstract column '{args.abstract_column}' not found in data. Use --abstract-column to specify.")
+            return
+
+        patent_texts = (
+            df[args.title_column].fillna("").astype(str) + ". " +
+            df[args.abstract_column].fillna("").astype(str)
+        ).tolist()
 
     # Initialize classifier
     logger.info("\nInitializing Azure classifier...")
@@ -471,6 +488,26 @@ Examples:
         type=str,
         help="Column containing patent text (default: combine title + abstract)"
     )
+    parser.add_argument(
+        "--title-column",
+        type=str,
+        default="application_title",
+        help="Name of column containing patent title (default: application_title)"
+    )
+    parser.add_argument(
+        "--abstract-column",
+        type=str,
+        default="application_abstract",
+        help="Name of column containing patent abstract (default: application_abstract)"
+    )
+
+    # Filtering
+    parser.add_argument(
+        "--start-year",
+        type=int,
+        default=None,
+        help="Only process patents from this year onwards (requires a year column)"
+    )
 
     # Azure configuration
     parser.add_argument(
@@ -498,6 +535,12 @@ Examples:
         type=str,
         default="ai_category",
         help="Name for category output column (default: ai_category)"
+    )
+    parser.add_argument(
+        "--category-column",
+        type=str,
+        dest="output_category_column",
+        help="Alias for --output-category-column"
     )
     parser.add_argument(
         "--output-confidence-column",
