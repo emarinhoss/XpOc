@@ -205,6 +205,49 @@ python src/scripts/categorize_by_ai_category.py \
 
 See [docs/category_specific_matching.md](docs/category_specific_matching.md) for complete guide.
 
+### Occupational Exposure Calculation ⭐ **Final Analysis Step**
+
+Calculate **occupational exposure scores** that measure how much each occupation's important tasks are matched by AI patents, weighted by task importance.
+
+```bash
+python src/scripts/calculate_occupational_exposure.py \
+    --input-dir results/category_specific \
+    --output-file results/occupational_exposure.csv
+```
+
+**What is exposure?**
+
+Exposure quantifies the degree to which an occupation's critical tasks are affected by AI technologies:
+
+```
+exposure = Σ (patent matches for task / total matches) × task importance
+```
+
+**Output:** Single file with exposure scores for all occupations × AI categories × years:
+
+```csv
+O*NET-SOC Code,Title,AI_Category,2021,2022,2023,2024,2025
+15-2051.00,Data Scientist,machine_learning,4.52,4.58,4.61,4.65,4.68
+15-2051.00,Data Scientist,nlp,4.31,4.35,4.39,4.42,4.45
+15-1252.00,Software Engineer,machine_learning,3.78,3.82,3.85,3.88,3.91
+...
+```
+
+**Interpretation:**
+- Higher score = occupation's more important tasks are heavily matched by AI
+- Scores range ~1-5 (based on O*NET importance scale)
+- Compare across AI categories to see differential impacts
+
+**Benefits:**
+- **Weighted by importance**: Focuses on critical tasks, not just any matches
+- **Cross-category comparison**: See which AI technologies affect which occupations most
+- **Trend analysis**: Track how exposure changes over time
+- **Policy insights**: Identify occupations most affected by AI for workforce planning
+
+**Best for:** Final analysis, policy research, identifying high-impact occupations.
+
+See [docs/occupational_exposure.md](docs/occupational_exposure.md) for detailed explanation and analysis examples.
+
 ## Installation
 
 ### Prerequisites
