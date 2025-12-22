@@ -11,6 +11,7 @@ pyyaml
 openpyxl
 matplotlib
 seaborn
+plotly
 tqdm
 pytest
 black
