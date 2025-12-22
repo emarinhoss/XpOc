@@ -3,7 +3,8 @@
 from .visualize_ai_exposure import (
     load_exposure_data,
     load_occupations_of_interest,
-    calculate_cumulative_exposure,
+    calculate_cumulative_exposure_all,
+    filter_occupations_of_interest,
     get_statistics,
     create_static_visualization,
     create_interactive_visualization,
@@ -13,7 +14,8 @@ from .visualize_ai_exposure import (
 __all__ = [
     'load_exposure_data',
     'load_occupations_of_interest',
-    'calculate_cumulative_exposure',
+    'calculate_cumulative_exposure_all',
+    'filter_occupations_of_interest',
     'get_statistics',
     'create_static_visualization',
     'create_interactive_visualization',

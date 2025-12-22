@@ -117,13 +117,12 @@ def load_occupations_of_interest(filepath: str) -> pd.DataFrame:
     return df
 
 
-def calculate_cumulative_exposure(
+def calculate_cumulative_exposure_all(
     exposure_df: pd.DataFrame,
-    occupations_df: pd.DataFrame,
     year_cols: list
 ) -> pd.DataFrame:
     """
-    Calculate cumulative exposure for each occupation per AI category.
+    Calculate cumulative exposure for ALL occupations per AI category.
 
     Returns a DataFrame with columns:
     - soc_code: O*NET-SOC Code
@@ -131,20 +130,35 @@ def calculate_cumulative_exposure(
     - ai_category: AI category name
     - cumulative_exposure: Sum of exposure across all years
     """
-    # Filter exposure data to only include occupations of interest
-    valid_socs = set(occupations_df['OccCode_2019ONET'].dropna().unique())
-    filtered_df = exposure_df[exposure_df['O*NET-SOC Code'].isin(valid_socs)].copy()
-
-    logger.info(f"Matched {filtered_df['O*NET-SOC Code'].nunique()} occupations from {len(valid_socs)} occupations of interest")
+    df = exposure_df.copy()
 
     # Calculate cumulative exposure (sum across years)
-    filtered_df['cumulative_exposure'] = filtered_df[year_cols].sum(axis=1)
+    df['cumulative_exposure'] = df[year_cols].sum(axis=1)
 
     # Select and rename columns for clarity
-    result = filtered_df[['O*NET-SOC Code', 'Title', 'AI_Category', 'cumulative_exposure']].copy()
+    result = df[['O*NET-SOC Code', 'Title', 'AI_Category', 'cumulative_exposure']].copy()
     result.columns = ['soc_code', 'title', 'ai_category', 'cumulative_exposure']
 
+    logger.info(f"Calculated cumulative exposure for {result['soc_code'].nunique()} total occupations")
+
     return result
+
+
+def filter_occupations_of_interest(
+    cumulative_df: pd.DataFrame,
+    occupations_df: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Filter cumulative exposure data to only include occupations of interest.
+
+    Returns filtered DataFrame with same structure as input.
+    """
+    valid_socs = set(occupations_df['OccCode_2019ONET'].dropna().unique())
+    filtered_df = cumulative_df[cumulative_df['soc_code'].isin(valid_socs)].copy()
+
+    logger.info(f"Filtered to {filtered_df['soc_code'].nunique()} occupations of interest from {len(valid_socs)} requested")
+
+    return filtered_df
 
 
 def get_statistics(data: pd.Series) -> dict:
@@ -162,23 +176,35 @@ def get_statistics(data: pd.Series) -> dict:
 
 
 def create_static_visualization(
-    df: pd.DataFrame,
+    plot_df: pd.DataFrame,
+    all_df: pd.DataFrame,
     ai_category: str,
     highlight_socs: list,
     output_path: Path,
-    stats: dict
+    global_stats: dict
 ):
     """
     Create static matplotlib/seaborn visualization.
 
     Shows a beeswarm/strip plot with mean, median, min/max labels,
     and highlighted occupations.
+
+    Args:
+        plot_df: DataFrame with occupations of interest to plot
+        all_df: DataFrame with ALL occupations (for min/max reference)
+        ai_category: AI category to visualize
+        highlight_socs: List of SOC codes to highlight
+        output_path: Path to save the visualization
+        global_stats: Statistics calculated from ALL occupations
     """
     fig, ax = plt.subplots(figsize=(14, 8))
 
-    # Prepare data
-    plot_data = df[df['ai_category'] == ai_category].copy()
+    # Prepare data for plotting (occupations of interest only)
+    plot_data = plot_df[plot_df['ai_category'] == ai_category].copy()
     plot_data = plot_data.sort_values('cumulative_exposure').reset_index(drop=True)
+
+    # Get all occupations for this category (for min/max reference)
+    all_cat_data = all_df[all_df['ai_category'] == ai_category].copy()
 
     # Add jitter for y-axis to create beeswarm effect
     np.random.seed(42)
@@ -187,11 +213,11 @@ def create_static_visualization(
     # Identify highlighted occupations
     plot_data['is_highlighted'] = plot_data['soc_code'].isin(highlight_socs)
 
-    # Find min and max occupations
-    min_idx = plot_data['cumulative_exposure'].idxmin()
-    max_idx = plot_data['cumulative_exposure'].idxmax()
-    min_occ = plot_data.loc[min_idx]
-    max_occ = plot_data.loc[max_idx]
+    # Find global min and max occupations (from ALL occupations)
+    global_min_idx = all_cat_data['cumulative_exposure'].idxmin()
+    global_max_idx = all_cat_data['cumulative_exposure'].idxmax()
+    global_min_occ = all_cat_data.loc[global_min_idx]
+    global_max_occ = all_cat_data.loc[global_max_idx]
 
     # Plot all points (non-highlighted)
     non_highlighted = plot_data[~plot_data['is_highlighted']]
@@ -201,7 +227,7 @@ def create_static_visualization(
         c='#4a90a4',
         alpha=0.5,
         s=30,
-        label='All Occupations',
+        label='Occupations of Interest',
         edgecolors='white',
         linewidths=0.5
     )
@@ -235,50 +261,64 @@ def create_static_visualization(
             zorder=6
         )
 
-    # Add mean line
+    # Add mean line (from global stats)
     ax.axvline(
-        stats['mean'],
+        global_stats['mean'],
         color='#2ecc71',
         linestyle='--',
         linewidth=2,
-        label=f"Mean: {stats['mean']:.2f}",
+        label=f"Mean (all): {global_stats['mean']:.2f}",
         zorder=3
     )
 
-    # Add median line
+    # Add median line (from global stats)
     ax.axvline(
-        stats['median'],
+        global_stats['median'],
         color='#9b59b6',
         linestyle='-.',
         linewidth=2,
-        label=f"Median: {stats['median']:.2f}",
+        label=f"Median (all): {global_stats['median']:.2f}",
         zorder=3
     )
 
-    # Annotate min occupation
+    # Annotate global min occupation (shown on x-axis, not in plot area)
+    ax.axvline(
+        global_min_occ['cumulative_exposure'],
+        color='#1a5276',
+        linestyle=':',
+        linewidth=1.5,
+        alpha=0.7,
+        zorder=2
+    )
     ax.annotate(
-        f"MIN: {min_occ['title']}\n({min_occ['cumulative_exposure']:.2f})",
-        xy=(min_occ['cumulative_exposure'], min_occ['jitter']),
-        xytext=(-15, -50),
+        f"MIN (all): {global_min_occ['title']}\n({global_min_occ['cumulative_exposure']:.2f})",
+        xy=(global_min_occ['cumulative_exposure'], -0.45),
+        xytext=(0, -30),
         textcoords='offset points',
         fontsize=9,
         color='#1a5276',
         bbox=dict(boxstyle='round,pad=0.3', facecolor='#d4e6f1', edgecolor='#1a5276', alpha=0.9),
-        arrowprops=dict(arrowstyle='->', color='#1a5276', lw=1.5),
         ha='center',
         zorder=6
     )
 
-    # Annotate max occupation
+    # Annotate global max occupation (shown on x-axis, not in plot area)
+    ax.axvline(
+        global_max_occ['cumulative_exposure'],
+        color='#7b241c',
+        linestyle=':',
+        linewidth=1.5,
+        alpha=0.7,
+        zorder=2
+    )
     ax.annotate(
-        f"MAX: {max_occ['title']}\n({max_occ['cumulative_exposure']:.2f})",
-        xy=(max_occ['cumulative_exposure'], max_occ['jitter']),
-        xytext=(15, 50),
+        f"MAX (all): {global_max_occ['title']}\n({global_max_occ['cumulative_exposure']:.2f})",
+        xy=(global_max_occ['cumulative_exposure'], 0.45),
+        xytext=(0, 30),
         textcoords='offset points',
         fontsize=9,
         color='#7b241c',
         bbox=dict(boxstyle='round,pad=0.3', facecolor='#fadbd8', edgecolor='#7b241c', alpha=0.9),
-        arrowprops=dict(arrowstyle='->', color='#7b241c', lw=1.5),
         ha='center',
         zorder=6
     )
@@ -297,13 +337,14 @@ def create_static_visualization(
     # Add legend
     ax.legend(loc='upper right', fontsize=10)
 
-    # Add statistics box
+    # Add statistics box (statistics are for ALL occupations)
     stats_text = (
-        f"N = {stats['count']:,}  |  "
-        f"Mean = {stats['mean']:.2f}  |  "
-        f"Median = {stats['median']:.2f}  |  "
-        f"Std Dev = {stats['std']:.2f}  |  "
-        f"Range = [{stats['min']:.2f}, {stats['max']:.2f}]"
+        f"All Occupations: N = {global_stats['count']:,}  |  "
+        f"Mean = {global_stats['mean']:.2f}  |  "
+        f"Median = {global_stats['median']:.2f}  |  "
+        f"Std Dev = {global_stats['std']:.2f}  |  "
+        f"Range = [{global_stats['min']:.2f}, {global_stats['max']:.2f}]  |  "
+        f"Plotted: {len(plot_data)} occupations of interest"
     )
     fig.text(
         0.5, 0.02,
@@ -326,20 +367,33 @@ def create_static_visualization(
 
 
 def create_interactive_visualization(
-    df: pd.DataFrame,
+    plot_df: pd.DataFrame,
+    all_df: pd.DataFrame,
     ai_category: str,
     highlight_socs: list,
     output_path: Path,
-    stats: dict
+    global_stats: dict
 ):
     """
     Create interactive Plotly visualization.
 
     Shows a strip plot with hover information for all occupations,
     highlighted occupations, and statistical reference lines.
+
+    Args:
+        plot_df: DataFrame with occupations of interest to plot
+        all_df: DataFrame with ALL occupations (for min/max reference)
+        ai_category: AI category to visualize
+        highlight_socs: List of SOC codes to highlight
+        output_path: Path to save the visualization
+        global_stats: Statistics calculated from ALL occupations
     """
-    plot_data = df[df['ai_category'] == ai_category].copy()
+    # Prepare data for plotting (occupations of interest only)
+    plot_data = plot_df[plot_df['ai_category'] == ai_category].copy()
     plot_data = plot_data.sort_values('cumulative_exposure').reset_index(drop=True)
+
+    # Get all occupations for this category (for min/max reference)
+    all_cat_data = all_df[all_df['ai_category'] == ai_category].copy()
 
     # Add jitter for y-axis
     np.random.seed(42)
@@ -348,11 +402,11 @@ def create_interactive_visualization(
     # Identify highlighted occupations
     plot_data['is_highlighted'] = plot_data['soc_code'].isin(highlight_socs)
 
-    # Find min and max
-    min_idx = plot_data['cumulative_exposure'].idxmin()
-    max_idx = plot_data['cumulative_exposure'].idxmax()
-    min_occ = plot_data.loc[min_idx]
-    max_occ = plot_data.loc[max_idx]
+    # Find global min and max (from ALL occupations)
+    global_min_idx = all_cat_data['cumulative_exposure'].idxmin()
+    global_max_idx = all_cat_data['cumulative_exposure'].idxmax()
+    global_min_occ = all_cat_data.loc[global_min_idx]
+    global_max_occ = all_cat_data.loc[global_max_idx]
 
     fig = go.Figure()
 
@@ -362,7 +416,7 @@ def create_interactive_visualization(
         x=non_highlighted['cumulative_exposure'],
         y=non_highlighted['jitter'],
         mode='markers',
-        name='All Occupations',
+        name='Occupations of Interest',
         marker=dict(
             size=8,
             color='#4a90a4',
@@ -401,43 +455,47 @@ def create_interactive_visualization(
         customdata=highlighted[['title', 'soc_code']].values
     ))
 
-    # Add mean line
+    # Add mean line (from global stats)
     fig.add_vline(
-        x=stats['mean'],
+        x=global_stats['mean'],
         line=dict(color='#2ecc71', width=2, dash='dash'),
-        annotation_text=f"Mean: {stats['mean']:.2f}",
+        annotation_text=f"Mean (all): {global_stats['mean']:.2f}",
         annotation_position='top'
     )
 
-    # Add median line
+    # Add median line (from global stats)
     fig.add_vline(
-        x=stats['median'],
+        x=global_stats['median'],
         line=dict(color='#9b59b6', width=2, dash='dashdot'),
-        annotation_text=f"Median: {stats['median']:.2f}",
+        annotation_text=f"Median (all): {global_stats['median']:.2f}",
         annotation_position='bottom'
     )
 
-    # Add min annotation
+    # Add global min line and annotation
+    fig.add_vline(
+        x=global_min_occ['cumulative_exposure'],
+        line=dict(color='#1a5276', width=1.5, dash='dot'),
+    )
     fig.add_annotation(
-        x=min_occ['cumulative_exposure'],
-        y=min_occ['jitter'],
-        text=f"MIN: {min_occ['title']}<br>({min_occ['cumulative_exposure']:.2f})",
-        showarrow=True,
-        arrowhead=2,
-        arrowcolor='#1a5276',
+        x=global_min_occ['cumulative_exposure'],
+        y=-0.4,
+        text=f"MIN (all): {global_min_occ['title']}<br>({global_min_occ['cumulative_exposure']:.2f})",
+        showarrow=False,
         bgcolor='#d4e6f1',
         bordercolor='#1a5276',
         font=dict(size=10, color='#1a5276')
     )
 
-    # Add max annotation
+    # Add global max line and annotation
+    fig.add_vline(
+        x=global_max_occ['cumulative_exposure'],
+        line=dict(color='#7b241c', width=1.5, dash='dot'),
+    )
     fig.add_annotation(
-        x=max_occ['cumulative_exposure'],
-        y=max_occ['jitter'],
-        text=f"MAX: {max_occ['title']}<br>({max_occ['cumulative_exposure']:.2f})",
-        showarrow=True,
-        arrowhead=2,
-        arrowcolor='#7b241c',
+        x=global_max_occ['cumulative_exposure'],
+        y=0.4,
+        text=f"MAX (all): {global_max_occ['title']}<br>({global_max_occ['cumulative_exposure']:.2f})",
+        showarrow=False,
         bgcolor='#fadbd8',
         bordercolor='#7b241c',
         font=dict(size=10, color='#7b241c')
@@ -467,9 +525,10 @@ def create_interactive_visualization(
         annotations=[
             dict(
                 text=(
-                    f"N = {stats['count']:,}  |  Mean = {stats['mean']:.2f}  |  "
-                    f"Median = {stats['median']:.2f}  |  Std Dev = {stats['std']:.2f}  |  "
-                    f"Range = [{stats['min']:.2f}, {stats['max']:.2f}]"
+                    f"All Occupations: N = {global_stats['count']:,}  |  Mean = {global_stats['mean']:.2f}  |  "
+                    f"Median = {global_stats['median']:.2f}  |  Std Dev = {global_stats['std']:.2f}  |  "
+                    f"Range = [{global_stats['min']:.2f}, {global_stats['max']:.2f}]  |  "
+                    f"Plotted: {len(plot_data)} occupations of interest"
                 ),
                 xref='paper',
                 yref='paper',
@@ -495,14 +554,14 @@ def create_interactive_visualization(
 
 
 def save_summary_statistics(
-    df: pd.DataFrame,
+    all_df: pd.DataFrame,
     output_path: Path
 ):
-    """Save summary statistics for all AI categories to CSV."""
+    """Save summary statistics for all AI categories to CSV (based on ALL occupations)."""
     stats_list = []
 
-    for category in df['ai_category'].unique():
-        cat_data = df[df['ai_category'] == category]['cumulative_exposure']
+    for category in all_df['ai_category'].unique():
+        cat_data = all_df[all_df['ai_category'] == category]['cumulative_exposure']
         stats = get_statistics(cat_data)
         stats['ai_category'] = category
         stats_list.append(stats)
@@ -511,7 +570,7 @@ def save_summary_statistics(
     stats_df = stats_df[['ai_category', 'count', 'mean', 'median', 'std', 'min', 'max', 'q1', 'q3']]
     stats_df.to_csv(output_path, index=False)
 
-    logger.info(f"Saved summary statistics: {output_path}")
+    logger.info(f"Saved summary statistics (all occupations): {output_path}")
     return stats_df
 
 
@@ -534,18 +593,21 @@ def main():
     exposure_df, year_cols = load_exposure_data(args.exposure_file)
     occupations_df = load_occupations_of_interest(args.occupations_file)
 
-    # Calculate cumulative exposure
-    cumulative_df = calculate_cumulative_exposure(exposure_df, occupations_df, year_cols)
+    # Calculate cumulative exposure for ALL occupations
+    all_cumulative_df = calculate_cumulative_exposure_all(exposure_df, year_cols)
+
+    # Filter to occupations of interest for plotting
+    plot_cumulative_df = filter_occupations_of_interest(all_cumulative_df, occupations_df)
 
     # Get unique AI categories
-    ai_categories = cumulative_df['ai_category'].unique()
+    ai_categories = all_cumulative_df['ai_category'].unique()
     logger.info(f"Found {len(ai_categories)} AI categories: {list(ai_categories)}")
 
-    # Validate highlight SOCs
-    valid_socs = set(cumulative_df['soc_code'].unique())
+    # Validate highlight SOCs (must be in the plot data)
+    valid_socs = set(plot_cumulative_df['soc_code'].unique())
     invalid_socs = [soc for soc in highlight_socs if soc not in valid_socs]
     if invalid_socs:
-        logger.warning(f"The following SOC codes were not found in the data: {invalid_socs}")
+        logger.warning(f"The following SOC codes were not found in occupations of interest: {invalid_socs}")
 
     valid_highlight_socs = [soc for soc in highlight_socs if soc in valid_socs]
     logger.info(f"Valid highlighted SOC codes: {valid_highlight_socs}")
@@ -555,33 +617,35 @@ def main():
         # Sanitize category name for filename
         safe_category = category.replace(' ', '_').replace('/', '_').replace('\\', '_')
 
-        # Get statistics for this category
-        cat_data = cumulative_df[cumulative_df['ai_category'] == category]['cumulative_exposure']
-        stats = get_statistics(cat_data)
+        # Get global statistics for this category (from ALL occupations)
+        all_cat_data = all_cumulative_df[all_cumulative_df['ai_category'] == category]['cumulative_exposure']
+        global_stats = get_statistics(all_cat_data)
 
         # Create static visualization (PNG)
         static_path = output_dir / f"{safe_category}_exposure.png"
         create_static_visualization(
-            cumulative_df,
+            plot_cumulative_df,
+            all_cumulative_df,
             category,
             valid_highlight_socs,
             static_path,
-            stats
+            global_stats
         )
 
         # Create interactive visualization (HTML)
         interactive_path = output_dir / f"{safe_category}_exposure.html"
         create_interactive_visualization(
-            cumulative_df,
+            plot_cumulative_df,
+            all_cumulative_df,
             category,
             valid_highlight_socs,
             interactive_path,
-            stats
+            global_stats
         )
 
-    # Save summary statistics
+    # Save summary statistics (based on ALL occupations)
     stats_path = output_dir / "summary_statistics.csv"
-    save_summary_statistics(cumulative_df, stats_path)
+    save_summary_statistics(all_cumulative_df, stats_path)
 
     logger.info(f"Visualization complete! Output saved to: {output_dir}")
     print(f"\nGenerated {len(ai_categories) * 2} visualizations ({len(ai_categories)} static + {len(ai_categories)} interactive)")
