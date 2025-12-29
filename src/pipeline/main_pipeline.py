@@ -88,17 +88,20 @@ class PatentOccupationPipeline:
         """Create sample O*NET data for demonstration."""
         sample_data = {
             'Task ID': range(1, 51),
-            'Task': [f'Perform task related to {area} using {tool}' 
+            'Task': [f'Perform task related to {area} using {tool}'
                     for area in ['analysis', 'design', 'management', 'development', 'testing']
-                    for tool in ['AI tools', 'ML algorithms', 'data systems', 'automation', 
-                                 'neural networks', 'NLP', 'computer vision', 'robotics', 
+                    for tool in ['AI tools', 'ML algorithms', 'data systems', 'automation',
+                                 'neural networks', 'NLP', 'computer vision', 'robotics',
                                  'expert systems', 'decision trees']],
-            'Title': ['Data Scientist'] * 10 + ['Software Engineer'] * 10 + 
+            'Title': ['Data Scientist'] * 10 + ['Software Engineer'] * 10 +
                     ['AI Specialist'] * 10 + ['ML Engineer'] * 10 + ['Research Scientist'] * 10,
-            'O*NET-SOC Code': ['15-2051.00'] * 10 + ['15-1252.00'] * 10 + 
-                             ['15-1299.00'] * 10 + ['15-1299.01'] * 10 + ['19-1021.00'] * 10
+            'O*NET-SOC Code': ['15-2051.00'] * 10 + ['15-1252.00'] * 10 +
+                             ['15-1299.00'] * 10 + ['15-1299.01'] * 10 + ['19-1021.00'] * 10,
+            'Scale Name': ['Importance'] * 50,
+            'Category': ['Core'] * 25 + ['Supplemental'] * 25,
+            'Data Value': [4.0, 4.5, 3.5, 4.2, 3.8] * 10
         }
-        
+
         df = pd.DataFrame(sample_data)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         df.to_csv(output_path, index=False)
@@ -118,17 +121,17 @@ class PatentOccupationPipeline:
             self.config['data']['patents']['processed_path']
         )
         
-        # Load or create AI categories
-        categories_path = Path(self.config['data']['patents']['ai_categories_path'])
-        if categories_path.exists():
-            categories_df = self.patent_loader.load_ai_categories(str(categories_path))
-        else:
-            # Create default categories
-            logger.warning("AI categories file not found. Using all patents as AI patents...")
-            categories_df = pd.DataFrame({
-                'AI topic': [1] * len(patents_df['topic_label'].unique()),
-                'Topics': patents_df['topic_label'].unique()
-            })
+        # Filter for AI patents
+        category_column = self.config.get('processing', {}).get('category_column')
+        categories_df = None
+
+        if not category_column:
+            logger.info("No category column specified. Attempting to filter using categories file.")
+            categories_path = Path(self.config['data']['patents']['ai_categories_path'])
+            if categories_path.exists():
+                categories_df = self.patent_loader.load_ai_categories(str(categories_path))
+            else:
+                logger.warning("AI categories file not found and no category column set.")
         
         ai_patents = self.patent_loader.filter_ai_patents(categories_df)
         

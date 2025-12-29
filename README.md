@@ -1,30 +1,84 @@
 # Patent-Occupation Matcher
 
-A system for matching AI patents with occupational tasks using BERT embeddings and ScaNN similarity search.
+A system for matching AI patents with occupational tasks using BERT embeddings and ScaNN similarity search. This project helps to understand the impact of technological innovations, as represented by patents, on the labor market structure, as represented by O*NET occupational tasks.
 
-## Overview
-This project bridges technological innovation (patents) with labor market structure (O*NET occupational tasks) to understand AI's impact on different types of work.
+## Table of Contents
 
-## Quick Start
+- [Features](#features)
+- [System Architecture](#system-architecture)
+- [Patent Categorization](#patent-categorization)
+- [Patent-Occupation Matching](#patent-occupation-matching)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Data](#data)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Features
+
+- **End-to-End Pipeline**: A complete pipeline from data loading and preprocessing to embedding and matching.
+- **BERT-based Embeddings**: Uses a fine-tuned BERT model (`anferico/bert-for-patents`) for generating high-quality embeddings of patent titles and O*NET task descriptions.
+- **Efficient Similarity Search**: Implements ScaNN (Scalable Nearest Neighbors) for fast and accurate similarity search, with a fallback to a simpler matcher if ScaNN is not available.
+- **Configurable**: The pipeline is highly configurable through a single `config.yaml` file.
+- **Modular Design**: The codebase is organized into modular components for data loading, embedding, and matching, making it easy to extend and maintain.
+- **Docker Support**: Includes a `Dockerfile` and `docker-compose.yml` for easy setup and deployment.
+
+## System Architecture
+
+The pipeline consists of the following main components:
+
+1.  **Data Loaders**: `PatentLoader` and `ONetLoader` are responsible for loading patent and O*NET data from raw files.
+2.  **Data Preprocessor**: Cleans and preprocesses the data before embedding.
+3.  **Embedder**: `BertEmbedder` uses a pre-trained BERT model to generate embeddings for patent titles and O*NET tasks.
+4.  **Matcher**: `ScannMatcher` or `SimpleMatcher` builds an index of patent embeddings and performs similarity searches to find the best matches for each O*NET task.
+5.  **Main Pipeline**: The `PatentOccupationPipeline` class orchestrates the entire workflow, from loading data to saving the results.
+
+The pipeline processes patents year by year, generates embeddings, and finds the top-k most similar patents for each O*NET task. The results are then saved to a CSV file.
+
+## Patent Categorization
+
+Before matching patents with occupations, patents must first be classified into AI categories. This repository provides two approaches:
+
+### Approach 1: Zero-Shot Classification ⭐ **RECOMMENDED**
+
+Uses embedding models and cosine similarity to classify patents into 8 AI categories **without API calls**.
+
+**Supports any HuggingFace model:**
+- `anferico/bert-for-patents` (default, specialized for patents)
+- `google/embeddinggemma-300m` (efficient, general-purpose)
+- `sentence-transformers/all-MiniLM-L6-v2` (very fast)
+- Any other sentence-transformers or AutoModel
+
+**Benefits:**
+- **Free**: No API costs ($0 vs $9,000-$18,000 for 900k patents)
+- **Fast**: ~4 hours on GPU or ~24 hours on CPU for 900k patents
+- **Flexible**: Choose from hundreds of HuggingFace models
+- **Offline**: Works without internet connection
+- **Reproducible**: Same results every time
+
+**Usage (Default BERT-for-patents):**
 ```bash
-# Clone repository
-git clone https://github.com/yourusername/patent-occupation-matcher.git
-cd patent-occupation-matcher
+python src/scripts/categorize_patents_zeroshot.py \
+    --input-file data/processed/patents.csv \
+    --output-file data/processed/patents_categorized.csv
+```
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+**Usage (Google EmbeddingGemma):**
+```bash
+python src/scripts/categorize_patents_zeroshot.py \
+    --input-file data/processed/patents.csv \
+    --output-file data/processed/patents_categorized.csv \
+    --model-name google/embeddinggemma-300m \
+    --model-type auto-model \
+    --pooling mean
+```
 
-# Install dependencies
-pip install -r requirements.txt
+See [docs/multi_model_support.md](docs/multi_model_support.md) for more model options.
 
-# Download data
-python scripts/download_data.py
+### Approach 1a: Azure OpenAI Embeddings ⭐ **CLOUD-BASED**
 
-<<<<<<< Updated upstream
-# Run pipeline
-python scripts/run_pipeline.py --config config/config.yaml
-=======
 Uses Azure OpenAI embedding models for zero-shot classification with built-in rate limiting.
 
 **Benefits:**
@@ -332,44 +386,7 @@ See [docs/importance_scatterplot.md](docs/importance_scatterplot.md) for analysi
 - Python 3.8 or higher
 - A C++ compiler for ScaNN (e.g., `g++` on Linux, Build Tools for Visual Studio on Windows)
 
-### 🍎 Apple Silicon (M1/M2/M3) - Recommended for Mac Users
-
-**Quick setup with GPU acceleration:**
-
-```bash
-# 1. Install Miniforge (optimized for Apple Silicon)
-curl -L -O https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
-bash Miniforge3-MacOSX-arm64.sh
-
-# 2. Clone and setup
-git clone https://github.com/yourusername/patent-occupation-matcher.git
-cd patent-occupation-matcher
-
-# 3. Run automated setup
-chmod +x setup_apple_silicon.sh
-./setup_apple_silicon.sh
-
-# 4. Activate environment
-conda activate xpoc-m2
-
-# 5. Test GPU acceleration
-python tests/test_mps_gpu.py
-```
-
-**Performance on M2 Pro:**
-- Zero-shot classification: ~400-600 patents/sec
-- 900k patents: ~25-40 minutes
-- Uses Apple GPU (MPS) automatically
-
-See [docs/apple_silicon_setup.md](docs/apple_silicon_setup.md) for complete guide including:
-- Performance optimization for M2 Pro
-- Batch size tuning
-- Memory management
-- Troubleshooting
-
-### Standard Installation
-
-#### Steps
+### Steps
 
 1.  **Clone the repository:**
 
@@ -501,4 +518,3 @@ Contributions are welcome! Please follow these steps:
 ## License
 
 This project is licensed under the MIT License. See the `LICENSE` file for details.
->>>>>>> Stashed changes
